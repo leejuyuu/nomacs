@@ -204,7 +204,8 @@ int main(int argc, char *argv[])
     }
 
     // apply default settings
-    if (parser.isSet(registerFilesOpt)) {
+    if (parser.isSet(registerFilesOpt)) 
+    {
         nmc::DkFileFilterHandling::registerFileAssociations();
         noUI = true;
     }
