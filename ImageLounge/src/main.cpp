@@ -197,7 +197,8 @@ int main(int argc, char *argv[])
     bool noUI = false;
 
     // apply default settings
-    if (!parser.value(importSettingsOpt).isEmpty()) {
+    if (!parser.value(importSettingsOpt).isEmpty()) 
+    {
         QString settingsPath = parser.value(importSettingsOpt);
         nmc::DkSettingsManager::importSettings(settingsPath);
         noUI = true;
