@@ -234,6 +234,34 @@ private:
     int mImageMode = mode_uninitialized;
 };
 
+class DkAspectRatio : public QObject
+{
+    Q_OBJECT
+
+signals:
+    void valueChanged(double horizontal, double vertical);
+
+public:
+    DkAspectRatio(double horizontal = 0, double vertical = 0);
+    double horizontal() const
+    {
+        return mHorizontal;
+    };
+    double vertical() const
+    {
+        return mVertical;
+    };
+
+public slots:
+    void setValue(double horizontal, double vertical);
+    void setHorizontal(double horizontal);
+    void setVertical(double vertical);
+
+private:
+    double mHorizontal = 0;
+    double mVertical = 0;
+};
+
 class DkCropToolBar : public QToolBar
 {
     Q_OBJECT
@@ -267,8 +295,7 @@ public slots:
     void onSwapActionTriggered();
     void onRatioBoxCurrentIndexChanged(const QString &text);
     void onGuideBoxCurrentIndexChanged(int idx);
-    void onHorValBoxValueChanged(double val);
-    void onVerValBoxValueChanged(double val);
+    void onAspectRatioChanged(double horizontal, double vertical);
     void onAngleBoxValueChanged(double val);
     void onBgColButtonClicked();
     void onPanActionToggled(bool checked);
@@ -294,6 +321,7 @@ protected:
     void createIcons();
     void saveSettings();
 
+    DkAspectRatio mAspectRatio{};
     QComboBox *mRatioBox = nullptr;
     QComboBox *mGuideBox = nullptr;
     QAction *mInvertAction = nullptr;

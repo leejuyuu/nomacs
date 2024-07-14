@@ -844,8 +844,9 @@ void DkCropToolBar::loadSettings()
     DefaultSettings settings;
     settings.beginGroup("Crop");
 
-    mHorValBox->setValue(settings.value("AspectRatioHorizontal", 0).toInt());
-    mVerValBox->setValue(settings.value("AspectRatioVertical", 0).toInt());
+    auto horizontal{settings.value("AspectRatioHorizontal", 0).toDouble()};
+    auto vertical{settings.value("AspectRatioVertical", 0).toDouble()};
+    mAspectRatio.setValue(horizontal, vertical);
     mGuideBox->setCurrentIndex(settings.value("guides", 1).toInt());
     mInvertAction->setChecked(settings.value("inverted", false).toBool());
     mInfoAction->setChecked(settings.value("info", true).toBool());
@@ -858,8 +859,8 @@ void DkCropToolBar::saveSettings()
     DefaultSettings settings;
     settings.beginGroup("Crop");
 
-    settings.setValue("AspectRatioHorizontal", mHorValBox->value());
-    settings.setValue("AspectRatioVertical", mVerValBox->value());
+    settings.setValue("AspectRatioHorizontal", mAspectRatio.horizontal());
+    settings.setValue("AspectRatioVertical", mAspectRatio.vertical());
     settings.setValue("guides", mGuideBox->currentIndex());
     settings.setValue("inverted", mInvertAction->isChecked());
     settings.setValue("info", mInfoAction->isChecked());
@@ -915,8 +916,8 @@ void DkCropToolBar::createLayout()
     mHorValBox->setStatusTip(mHorValBox->toolTip());
     connect(mHorValBox,
             QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-            this,
-            &DkCropToolBar::onHorValBoxValueChanged);
+            &mAspectRatio,
+            &DkAspectRatio::setHorizontal);
 
     auto *swapAction = new QAction(DkImage::loadIcon(":/nomacs/img/swap.svg"), tr("Swap"), this);
     swapAction->setToolTip(tr("Swap Dimensions"));
@@ -929,8 +930,9 @@ void DkCropToolBar::createLayout()
     mVerValBox->setStatusTip(mVerValBox->toolTip());
     connect(mVerValBox,
             QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-            this,
-            &DkCropToolBar::onVerValBoxValueChanged);
+            &mAspectRatio,
+            &DkAspectRatio::setVertical);
+    connect(&mAspectRatio, &DkAspectRatio::valueChanged, this, &DkCropToolBar::onAspectRatioChanged);
 
     mAngleBox = new QDoubleSpinBox(this);
     mAngleBox->setSuffix(dk_degree_str);
@@ -1022,8 +1024,7 @@ void DkCropToolBar::setVisible(bool visible)
 
 void DkCropToolBar::setAspectRatio(const QPointF &aRatio)
 {
-    mHorValBox->setValue(aRatio.x());
-    mVerValBox->setValue(aRatio.y());
+    mAspectRatio.setValue(aRatio.x(), aRatio.y());
 }
 
 void DkCropToolBar::setRect(const QRect &r)
@@ -1053,9 +1054,7 @@ void DkCropToolBar::onInfoActionToggled(bool checked)
 
 void DkCropToolBar::onSwapActionTriggered()
 {
-    int tmpV = qRound(mHorValBox->value());
-    mHorValBox->setValue(mVerValBox->value());
-    mVerValBox->setValue(tmpV);
+    mAspectRatio.setValue(mAspectRatio.vertical(), mAspectRatio.horizontal());
 }
 
 void DkCropToolBar::onAngleBoxValueChanged(double val)
@@ -1101,8 +1100,7 @@ void DkCropToolBar::onRatioBoxCurrentIndexChanged(const QString &text)
 
     // no aspect ratio -> clear boxes
     if (mRatioBox->currentIndex() == 0) {
-        mHorValBox->setValue(0);
-        mVerValBox->setValue(0);
+        mAspectRatio.setValue(0, 0);
         return;
     }
 
@@ -1111,8 +1109,7 @@ void DkCropToolBar::onRatioBoxCurrentIndexChanged(const QString &text)
     qDebug() << vals;
 
     if (vals.size() == 2) {
-        mHorValBox->setValue(vals[0].toDouble());
-        mVerValBox->setValue(vals[1].toDouble());
+        mAspectRatio.setValue(vals[0].toDouble(), vals[1].toDouble());
     }
 }
 
@@ -1121,27 +1118,24 @@ void DkCropToolBar::onGuideBoxCurrentIndexChanged(int idx)
     emit paintHint(idx);
 }
 
-void DkCropToolBar::onVerValBoxValueChanged(double val)
+void DkCropToolBar::onAspectRatioChanged(double horizontal, double vertical)
 {
-    // just pass it on
-    onHorValBoxValueChanged(val);
-}
+    mHorValBox->setValue(horizontal);
+    mVerValBox->setValue(vertical);
 
-void DkCropToolBar::onHorValBoxValueChanged(double)
-{
-    DkVector diag = DkVector((float)mHorValBox->value(), (float)mVerValBox->value());
-    emit aspectRatio(diag);
+    emit aspectRatio(DkVector(horizontal, vertical));
 
-    QString rs = QString::number(mHorValBox->value()) + ":" + QString::number(mVerValBox->value());
+    QString rs = QString::number(horizontal) + ":" + QString::number(vertical);
 
     int idx = mRatioBox->findText(rs);
 
-    if (idx != -1)
+    if (idx != -1) {
         mRatioBox->setCurrentIndex(idx);
-    else if (mHorValBox->value() == 0 && mVerValBox->value() == 0)
+    } else if (horizontal == 0 && vertical == 0) {
         mRatioBox->setCurrentIndex(0);
-    else
+    } else {
         mRatioBox->setCurrentIndex(1);
+    }
 }
 
 void DkCropToolBar::onPanActionToggled(bool checked)
@@ -1350,6 +1344,40 @@ DkMainToolBar *DkToolBarManager::defaultToolBar() const
 DkTransferToolBar *DkToolBarManager::transferToolBar() const
 {
     return mTransferToolBar;
+}
+
+DkAspectRatio::DkAspectRatio(double horizontal, double vertical)
+    : mHorizontal{horizontal}
+    , mVertical{vertical}
+{
+}
+
+void DkAspectRatio::setValue(double horizontal, double vertical)
+{
+    if (mHorizontal == horizontal && mVertical == vertical) {
+        return;
+    }
+    mHorizontal = horizontal;
+    mVertical = vertical;
+    emit valueChanged(mHorizontal, mVertical);
+}
+
+void DkAspectRatio::setHorizontal(double horizontal)
+{
+    if (mHorizontal == horizontal) {
+        return;
+    }
+    mHorizontal = horizontal;
+    emit valueChanged(mHorizontal, mVertical);
+}
+
+void DkAspectRatio::setVertical(double vertical)
+{
+    if (mVertical == vertical) {
+        return;
+    }
+    mVertical = vertical;
+    emit valueChanged(mHorizontal, mVertical);
 }
 
 }
