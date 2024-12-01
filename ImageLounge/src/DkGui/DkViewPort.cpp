@@ -383,7 +383,6 @@ void DkViewPort::setImage(QImage newImg)
     if (mController->getHistogram())
         mController->getHistogram()->drawHistogram(newImg);
 
-    emit newImageSignal(&newImg);
     emit zoomSignal(mWorldMatrix.m11() * mImgMatrix.m11() * 100);
 
     // status info
