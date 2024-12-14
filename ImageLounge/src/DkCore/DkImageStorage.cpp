@@ -31,6 +31,8 @@
 #include "DkSettings.h"
 #include "DkThumbs.h"
 #include "DkTimer.h"
+#include <algorithm>
+#include <cmath>
 
 #pragma warning(push, 0) // no warnings from includes - begin
 #include <QBitmap>
@@ -243,6 +245,11 @@ QImage DkImage::thresholdImage(const QImage &img, double thr, bool color)
 
 QImage DkImage::rotateImage(const QImage &img, double angle)
 {
+    return rotateImageFast(img, angle);
+}
+
+QImage rotateImage(const QImage &img, double angle)
+{
     // compute new image size
     DkVector nSl((float)img.width(), (float)img.height());
     DkVector nSr = nSl;
@@ -278,6 +285,86 @@ QImage DkImage::rotateImage(const QImage &img, double angle)
     p.drawImage(QPoint(), img);
 
     return imgR;
+}
+
+QImage transposeImage(const QImage &img)
+{
+    QImage imgIn = img;
+    if (img.depth() > 32) {
+        // Ensure the data is 32-bit aligned
+        imgIn = img.convertToFormat(QImage::Format_ARGB32);
+    }
+
+    QImage imgOut = QImage(imgIn.size().transposed(), imgIn.format());
+
+    const QRgb *dataIn = reinterpret_cast<const QRgb *>(imgIn.constBits());
+    QRgb *dataOut = reinterpret_cast<QRgb *>(imgOut.bits());
+
+    const int h = imgIn.height();
+    const int w = imgIn.width();
+    for (int i = 0; i < h; i++) {
+        for (int j = 0; j < w; j++) {
+            dataOut[j * h + i] = dataIn[i * w + j];
+        }
+    }
+
+    return imgOut;
+}
+
+void flipImageHor(QImage &img)
+{
+    if (img.depth() > 32) {
+        // Ensure the data is 32-bit aligned
+        img = img.convertToFormat(QImage::Format_ARGB32);
+    }
+
+    QRgb *data = reinterpret_cast<QRgb *>(img.bits());
+    const int h = img.height();
+    const int w = img.width();
+    for (int i = 0; i < h; i++) {
+        std::reverse(data + w * i, data + w * (i + 1));
+    }
+}
+
+QImage rotateImageFast(const QImage &img, double angle)
+{
+    angle = std::fmod(angle, 360);
+    if (angle < 0) {
+        angle += 360;
+    }
+
+    if (angle == 0) {
+        return img;
+    }
+
+    if (angle == 90 || angle == 180 || angle == 270) {
+        // Fast path
+        QImage imgIn = img;
+        if (imgIn.depth() > 32) {
+            // Ensure the data is 32-bit aligned
+            imgIn = imgIn.convertToFormat(QImage::Format_ARGB32);
+        }
+
+        if (angle == 180) {
+            QRgb *outData = reinterpret_cast<QRgb *>(imgIn.bits());
+            const int len = imgIn.width() * imgIn.height();
+            std::reverse(outData, outData + len);
+            return imgIn;
+        }
+
+        if (angle == 90) {
+            QImage imgOut = transposeImage(imgIn);
+            flipImageHor(imgOut);
+            return imgOut;
+        }
+
+        if (angle == 270) {
+            flipImageHor(imgIn);
+            return transposeImage(imgIn);
+        }
+    }
+
+    return rotateImage(img, angle);
 }
 
 QImage DkImage::grayscaleImage(const QImage &img)
