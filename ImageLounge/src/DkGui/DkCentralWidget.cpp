@@ -639,9 +639,6 @@ void DkCentralWidget::createViewPort()
 
     if (mTabbar->currentIndex() != -1)
         vp->setImageLoader(mTabInfos[mTabbar->currentIndex()]->getImageLoader());
-    connect(vp, &DkViewPort::addTabSignal, this, [this](const QString &filePath) {
-        addTab(filePath);
-    });
     connect(vp, &DkViewPort::showProgress, this, &DkCentralWidget::showProgress);
 
     mWidgets[viewport_widget] = vp;

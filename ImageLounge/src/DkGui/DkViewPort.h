@@ -78,7 +78,7 @@ class DllCoreExport DkViewPort : public DkBaseViewPort
     Q_OBJECT
 
 public:
-    DkViewPort(QWidget *parent = 0);
+    DkViewPort(QWidget *parent = nullptr);
     virtual ~DkViewPort();
 
     void zoom(double factor = 0.5, const QPointF &center = QPointF(-1, -1), bool force = false) override;
@@ -121,9 +121,7 @@ signals:
     void sendNewFileSignal(qint16 op, QString filename = "") const;
     void movieLoadedSignal(bool isMovie) const;
     void infoSignal(const QString &msg) const; // needed to forward signals
-    void addTabSignal(const QString &filePath) const;
     void zoomSignal(double zoomLevel) const;
-    void mouseClickSignal(QMouseEvent *event, QPoint imgPos) const;
     void showProgress(bool show, int time = -1) const;
 
 public slots:
@@ -185,14 +183,12 @@ public slots:
 
     void updateLoadedImage();
     void onImageLoaded(QSharedPointer<DkImageContainerT> image, bool loaded = true);
-    virtual void setImageUpdated();
     virtual void loadImage(const QImage &newImg);
     virtual void loadImage(QSharedPointer<DkImageContainerT> img);
     virtual void setEditedImage(const QImage &newImg, const QString &editName);
     virtual void setEditedImage(QSharedPointer<DkImageContainerT> img);
     virtual void setImage(QImage newImg) override;
 
-    void settingsChanged();
     void pauseMovie(bool paused);
     void stopMovie();
     virtual void loadMovie();
@@ -227,7 +223,6 @@ protected:
     QImage mAnimationBuffer;
     double mAnimationValue;
     QRectF mFadeImgViewRect;
-    QRectF mFadeImgRect;
     bool mNextSwipe = true;
 
     QImage mImgBg;
@@ -241,7 +236,7 @@ protected:
 
     DkRotatingRect mCropRect;
 
-    DkHudNavigation *mNavigationWidget = 0;
+    DkHudNavigation *mNavigationWidget = nullptr;
 
     // image manipulators
     QFutureWatcher<QImage> mManipulatorWatcher;
@@ -252,7 +247,6 @@ protected:
     virtual void swipeAction(int swipeGesture);
     virtual void createShortcuts();
 
-    void drawPolygon(QPainter &painter, const QPolygon &polygon);
     void drawBackground(QPainter &painter) override;
     void updateImageMatrix() override;
     void showZoom();

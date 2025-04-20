@@ -278,13 +278,6 @@ void DkViewPort::onImageLoaded(QSharedPointer<DkImageContainerT> image, bool loa
     mController->updateImage(image);
 }
 
-void DkViewPort::setImageUpdated()
-{
-    if (!mLoader)
-        return;
-    mLoader->setImageUpdated();
-}
-
 void DkViewPort::loadImage(const QImage &newImg)
 {
     // delete current information
@@ -1114,18 +1107,6 @@ void DkViewPort::stopMovie()
     mMovie = QSharedPointer<QMovie>();
 }
 
-void DkViewPort::drawPolygon(QPainter &painter, const QPolygon &polygon)
-{
-    QPoint lastPoint;
-
-    for (const QPoint &p : polygon) {
-        if (!lastPoint.isNull())
-            painter.drawLine(p, lastPoint);
-
-        lastPoint = p;
-    }
-}
-
 // event listeners --------------------------------------------------------------------
 void DkViewPort::resizeEvent(QResizeEvent *event)
 {
@@ -1204,15 +1185,10 @@ void DkViewPort::mouseReleaseEvent(QMouseEvent *event)
     mRepeatZoomTimer->stop();
 
     int sa = swipeRecognition(event->pos(), mPosGrab.toPoint());
-    QPoint pos = mapToImage(event->pos());
 
     if (imageInside() && mGestureStarted) {
         swipeAction(sa);
     }
-
-    // needed for scientific projects...
-    if (pos.x() != -1 && pos.y() != -1)
-        emit mouseClickSignal(event, pos);
 
     mGestureStarted = false;
 
@@ -1598,16 +1574,6 @@ void DkViewPort::toggleLena(bool fullscreen)
     }
 }
 
-void DkViewPort::settingsChanged()
-{
-    reloadFile();
-
-    mAltMod = DkSettingsManager::param().global().altMod;
-    mCtrlMod = DkSettingsManager::param().global().ctrlMod;
-
-    mController->settingsChanged();
-}
-
 void DkViewPort::setEditedImage(const QImage &newImg, const QString &editName)
 {
     if (!mController->applyPluginChanges(true)) // user wants to first apply the plugin
@@ -1652,7 +1618,6 @@ bool DkViewPort::unloadImage(bool fileChange)
         QRect dr = mWorldMatrix.mapRect(mImgViewRect).toRect();
         mAnimationBuffer = mImgStorage.image(dr.size());
         mFadeImgViewRect = mImgViewRect;
-        mFadeImgRect = mImgRect;
         mAnimationValue = 1.0f;
     }
 
