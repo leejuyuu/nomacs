@@ -1336,7 +1336,7 @@ void DkPlayer::showTemporarily(bool autoHide)
 }
 
 // DkTransformRectangle --------------------------------------------------------------------
-DkTransformRect::DkTransformRect(int idx, DkRotatingRect *rect, QWidget *parent, Qt::WindowFlags f)
+DkTransformRect::DkTransformRect(int idx, DkRotatingRectNew *rect, QWidget *parent, Qt::WindowFlags f)
     : DkWidget(parent, f)
     , mRect(rect)
     , mParentIdx(idx)
@@ -1935,7 +1935,7 @@ void DkEditableRect::setVisible(bool visible)
         return; // prevent recursion via fade()
 
     if (!visible) {
-        mRect = DkRotatingRect();
+        mRect = DkRotatingRectNew();
         for (int idx = 0; idx < mCtrlPoints.size(); idx++)
             mCtrlPoints[idx]->hide();
     } else {

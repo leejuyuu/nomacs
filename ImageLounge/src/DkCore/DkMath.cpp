@@ -28,6 +28,7 @@
 #include "DkMath.h"
 
 #include <QTransform>
+#include <qassert.h>
 
 namespace nmc
 {
@@ -419,6 +420,374 @@ std::ostream &DkRotatingRect::put(std::ostream &s)
     }
 
     return s;
+}
+
+// DkRotatingRectNew --------------------------------------------------------------------
+DkRotatingRectNew::DkRotatingRectNew(QRectF rect)
+{
+    if (rect.isEmpty()) {
+        for (int idx = 0; idx < 4; idx++)
+            mRectOld.push_back(QPointF());
+    } else
+        mRectOld = rect;
+}
+
+DkRotatingRectNew::~DkRotatingRectNew() = default;
+
+bool DkRotatingRectNew::isEmpty() const
+{
+    return mRect.width() == 0 || mRect.height() == 0;
+}
+
+void DkRotatingRectNew::setAllCorners(const QPointF &p)
+{
+    mRect = QRectF(p, QSize());
+}
+
+DkVector DkRotatingRectNew::getDiagonal(int cIdx) const
+{
+    DkVector c0 = mRectOld[cIdx % 4];
+    DkVector c2 = mRectOld[(cIdx + 2) % 4];
+
+    return c2 - c0;
+}
+
+QCursor DkRotatingRectNew::cpCursor(int idx)
+{
+    double angle = 0;
+
+    if (idx >= 0 && idx < 4) {
+        // this seems a bit complicated...
+        // however the points are not necessarily stored in clockwise order...
+        DkVector e1 = mRectOld[(idx + 1) % 4] - mRectOld[idx];
+        DkVector e2 = mRectOld[(idx + 3) % mRectOld.size()] - mRectOld[idx];
+        e1.normalize();
+        e2.normalize();
+        DkVector rv = e1 - e2;
+        rv = rv.normalVec();
+        angle = rv.angle();
+    } else {
+        DkVector edge = mRectOld[(idx + 1) % 4] - mRectOld[idx % 4];
+        angle = edge.normalVec().angle(); // the angle of the normal vector
+    }
+
+    angle = DkMath::normAngleRad(angle, -CV_PI / 8.0, 7.0 * CV_PI / 8.0);
+
+    if (angle > 5.0 * CV_PI / 8.0)
+        return QCursor(Qt::SizeBDiagCursor);
+    else if (angle > 3.0 * CV_PI / 8.0)
+        return QCursor(Qt::SizeVerCursor);
+    else if (angle > CV_PI / 8.0)
+        return QCursor(Qt::SizeFDiagCursor);
+    else
+        return QCursor(Qt::SizeHorCursor);
+}
+
+void DkRotatingRectNew::updateCorner(int cIdx, QPointF nC, DkVector oldDiag)
+{
+    Q_ASSERT(cIdx >= 0 && cIdx < 8);
+
+    const QPointF newPos = mPointMapInverted.map(nC);
+    qDebug() << "updateCorner" << newPos;
+
+    switch (cIdx) {
+    case 0:
+        mRect.setTopLeft(newPos);
+        break;
+    case 1:
+        mRect.setTopRight(newPos);
+        break;
+    case 2:
+        mRect.setBottomRight(newPos);
+        break;
+    case 3:
+        mRect.setBottomLeft(newPos);
+        break;
+    case 4:
+        mRect.setTop(newPos.y());
+        break;
+    case 5:
+        mRect.setRight(newPos.x());
+        break;
+    case 6:
+        mRect.setBottom(newPos.y());
+        break;
+    case 7:
+        mRect.setLeft(newPos.x());
+        break;
+    }
+}
+
+QPolygonF DkRotatingRectNew::getPoly() const
+{
+    QPolygonF p = getClosedPoly();
+    p.pop_back();
+    return p;
+}
+
+void DkRotatingRectNew::setPoly(QPolygonF &poly)
+{
+    mRectOld = poly;
+}
+
+QPolygonF DkRotatingRectNew::getClosedPoly() const
+{
+    const bool wValid = mRect.width() > 0;
+    const bool hValid = mRect.height() > 0;
+
+    QPolygonF p;
+    if (wValid && hValid) {
+        p = mRect;
+    } else if (!wValid && hValid) {
+        qDebug() << mRect.topLeft() << mRect.topRight();
+    }
+
+    return mPointMap.map(QPolygonF(mRect.normalized()));
+}
+
+QPointF DkRotatingRectNew::getCenter() const
+{
+    if (mRectOld.empty())
+        return QPointF();
+
+    DkVector c1 = mRectOld[0];
+    DkVector c2 = mRectOld[2];
+
+    return ((c2 - c1) * 0.5f + c1).toQPointF();
+}
+
+QPointF DkRotatingRectNew::getTopLeft() const
+{
+    DkVector v = mRectOld[0];
+    v = v.minVec(mRectOld[1]);
+    v = v.minVec(mRectOld[2]);
+    v = v.minVec(mRectOld[3]);
+
+    return v.toQPointF();
+}
+
+void DkRotatingRectNew::setSize(const QSizeF &s)
+{
+    double angle = getAngle() - CV_PI * 0.5;
+
+    QRectF r;
+    r.setSize(s);
+    r.moveCenter(getCenter());
+
+    mRectOld = r;
+
+    // assigning a QRectF to a QPolygonF results in a closed polygon - but we want it to be open so remove the last
+    // point
+    mRectOld.pop_back();
+
+    rotate(angle);
+}
+
+QSize DkRotatingRectNew::size() const
+{
+    return mRect.size().toSize();
+}
+
+void DkRotatingRectNew::setCenter(const QPointF &center)
+{
+    if (mRectOld.empty())
+        return;
+
+    DkVector diff = getCenter() - center;
+
+    for (int idx = 0; idx < mRectOld.size(); idx++) {
+        mRectOld[idx] = mRectOld[idx] - diff.toQPointF();
+    }
+}
+
+float DkRotatingRectNew::getAngleDeg() const
+{
+    auto sAngle = (float)(getAngle() * DK_RAD2DEG);
+
+    while (sAngle > 90)
+        sAngle -= 180;
+    while (sAngle < -90)
+        sAngle += 180;
+
+    sAngle = qRound(sAngle * 100) / 100.0f; // round to 2 digits
+
+    return sAngle;
+}
+
+void DkRotatingRectNew::getTransform(QTransform &tForm, QPointF &size) const
+{
+    if (mRectOld.size() < 4)
+        return;
+
+    // default upper left corner is 0
+    DkVector xV = DkVector(mRectOld[3] - mRectOld[0]).round();
+    DkVector yV = DkVector(mRectOld[1] - mRectOld[0]).round();
+
+    QPointF ul = QPointF(qRound(mRectOld[0].x()), qRound(mRectOld[0].y()));
+    size = QPointF(xV.norm(), yV.norm());
+
+    double angle = xV.angle();
+    angle = DkMath::normAngleRad(angle, -CV_PI, CV_PI);
+
+    // switch width/height for /\ and \/ quadrants
+    if (std::abs(angle) > CV_PI * 0.25 && std::abs(angle) < CV_PI * 0.75) {
+        auto x = (float)size.x();
+        size.setX(size.y());
+        size.setY(x);
+    }
+
+    // invariance -> user does not want to make a difference between an upside down mRectOld
+    if (angle > CV_PI * 0.25 && angle < CV_PI * 0.75) {
+        angle -= CV_PI * 0.5;
+        ul = mRectOld[1];
+    } else if (angle > -CV_PI * 0.75 && angle < -CV_PI * 0.25) {
+        angle += CV_PI * 0.5;
+        ul = mRectOld[3];
+    } else if (angle >= CV_PI * 0.75 || angle <= -CV_PI * 0.75) {
+        angle += CV_PI;
+        ul = mRectOld[2];
+    }
+
+    tForm.rotateRadians(-angle);
+    tForm.translate(qRound(-ul.x()), qRound(-ul.y())); // round guarantees that pixels are not interpolated
+}
+
+QRectF DkRotatingRectNew::toExifRect(const QSize &size) const
+{
+    // TODO: if the angle is > 0 I get issues (photoshop has the same interpretation as we do)
+    QPointF center = getCenter();
+
+    QPolygonF polygon = getPoly();
+    DkVector vec;
+    double angle = getAngle();
+
+    for (int i = 0; i < 4; i++) {
+        // We need the second quadrant, but I do not know why... just tried it out.
+        vec = polygon[i] - center;
+        if (vec.x <= 0 && vec.y > 0)
+            break;
+    }
+
+    vec.rotate(angle * 2);
+    vec.abs();
+
+    float top = (float)center.y() - vec.y;
+    float bottom = (float)center.y() + vec.y;
+    float left = (float)center.x() - vec.x;
+    float right = (float)center.x() + vec.x;
+
+    // Normalize the coordinates:
+    top /= size.height();
+    bottom /= size.height();
+    left /= size.width();
+    right /= size.width();
+
+    return QRectF(QPointF(left, top), QSizeF(right - left, bottom - top));
+}
+
+DkRotatingRectNew DkRotatingRectNew::fromExifRect(const QRectF &rect, const QSize &size, double angle)
+{
+    double a = CV_PI * 0.5 - angle;
+
+    QRectF rt(rect.left() * size.width(),
+              rect.top() * size.height(),
+              rect.width() * size.width(),
+              rect.height() * size.height());
+
+    //
+    DkVector ul = rt.topLeft() - rt.center();
+    ul.rotate(-a);
+
+    QSizeF s(std::abs(ul.x * 2.0f), std::abs(ul.y * 2.0f));
+
+    QRectF rts(QPoint(), s);
+    rts.moveCenter(rt.center());
+
+    DkRotatingRectNew rr(rts);
+    rr.rotate(-a);
+
+    return rr;
+}
+
+void DkRotatingRectNew::transform(const QTransform &translation, const QTransform &rotation)
+{
+    // apply transform
+    QPolygonF p = mRectOld;
+    p = translation.map(p);
+    p = rotation.map(p);
+    p = translation.inverted().map(p);
+
+    // Check the order or vertexes
+    auto signedArea = (float)((p[1].x() - p[0].x()) * (p[2].y() - p[0].y())
+                              - (p[1].y() - p[0].y()) * (p[2].x() - p[0].x()));
+    // If it's wrong, just change it
+    if (signedArea > 0) {
+        QPointF tmp = p[1];
+        p[1] = p[3];
+        p[3] = tmp;
+    }
+
+    // update corners
+    setPoly(p);
+}
+
+void DkRotatingRectNew::rotate(double angle)
+{
+    QPointF c = getCenter();
+
+    QTransform tt;
+    tt.translate(-c.x(), -c.y());
+
+    QTransform rt;
+    rt.rotateRadians(angle - getAngle());
+
+    transform(tt, rt);
+}
+
+std::ostream &DkRotatingRectNew::put(std::ostream &s)
+{
+    s << "DkRotatingRectNew: ";
+    for (int idx = 0; idx < mRectOld.size(); idx++) {
+        DkVector vec = DkVector(mRectOld[idx]);
+        s << vec << ", ";
+    }
+
+    return s;
+}
+
+qreal DkRotatingRectNew::getAngle() const
+{
+    return mAngle;
+}
+
+/**
+ * Set the angle in degrees.
+ *
+ * Set the angle of the rect to the given value.
+ * Because a rectangle is rotationally symmetric,
+ * the angle will be converted to be in [0, 180).
+ * Positive direction is clockwise because the y-axis points downward.
+ */
+void DkRotatingRectNew::setAngle(qreal angle)
+{
+    angle = std::fmod(angle, 180);
+    if (angle < 0) {
+        angle += 180;
+    }
+
+    mAngle = angle;
+
+    const QPointF center = getCenter();
+    QTransform rot = QTransform().rotate(angle);
+    const QPointF translation = (rot.map(-center) + center);
+    rot.setMatrix(rot.m11(), rot.m12(), 0, rot.m21(), rot.m22(), 0, translation.x(), translation.y(), 1);
+    mPointMap = rot;
+
+    bool invertible;
+    mPointMapInverted = rot.inverted(&invertible);
+    if (!invertible) {
+        qWarning() << "DkRotatingRectNew::setAngle invert mPointMap failed";
+    }
 }
 
 }

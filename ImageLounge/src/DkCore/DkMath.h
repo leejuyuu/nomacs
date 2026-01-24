@@ -287,7 +287,7 @@ public:
      **/
     DkVector()
         : x(0)
-        , y(0){};
+        , y(0) { };
 
     /**
      * Initializes an object.
@@ -345,7 +345,7 @@ public:
     /**
      * Default destructor.
      **/
-    virtual ~DkVector(){};
+    virtual ~DkVector() { };
 
     /**
      * Compares two vectors.
@@ -874,6 +874,50 @@ protected:
     virtual std::ostream &put(std::ostream &s);
 
     QPolygonF mRect;
+};
+
+class DllCoreExport DkRotatingRectNew
+{
+public:
+    DkRotatingRectNew(QRectF rect = QRectF());
+    virtual ~DkRotatingRectNew();
+
+    friend std::ostream &operator<<(std::ostream &s, DkRotatingRectNew &r)
+    {
+        return r.put(s);
+    };
+
+    bool isEmpty() const;
+    void setAllCorners(const QPointF &p);
+    DkVector getDiagonal(int cIdx) const;
+    QCursor cpCursor(int idx);
+    void updateCorner(int cIdx, QPointF nC, DkVector oldDiag = DkVector());
+    QPolygonF getPoly() const;
+    void setPoly(QPolygonF &poly);
+    QPolygonF getClosedPoly() const;
+    QPointF getCenter() const;
+    QPointF getTopLeft() const;
+    void setSize(const QSizeF &s);
+    QSize size() const;
+    void setCenter(const QPointF &center);
+    double getAngle() const;
+    float getAngleDeg() const;
+    void getTransform(QTransform &tForm, QPointF &size) const;
+    QRectF toExifRect(const QSize &size) const;
+    static DkRotatingRectNew fromExifRect(const QRectF &rect, const QSize &size, double angle);
+    void transform(const QTransform &translation, const QTransform &rotation);
+    void rotate(double angle);
+    void setAngle(qreal angle);
+
+protected:
+    virtual std::ostream &put(std::ostream &s);
+
+    QTransform mPointMap;
+    QTransform mPointMapInverted;
+    QRectF mRect;
+    QPolygonF mRectOld;
+    std::optional<QRectF> mOuterBox;
+    qreal mAngle = 0;
 };
 
 }

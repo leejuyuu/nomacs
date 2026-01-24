@@ -410,7 +410,7 @@ class DkTransformRect : public DkWidget
 
 public:
     explicit DkTransformRect(int idx = -1,
-                             DkRotatingRect *rect = nullptr,
+                             DkRotatingRectNew *rect = nullptr,
                              QWidget *parent = nullptr,
                              Qt::WindowFlags f = Qt::WindowFlags());
     ~DkTransformRect() override = default;
@@ -433,7 +433,7 @@ protected:
     void enterEvent(DkEnterEvent *event) override;
     void init();
 
-    DkRotatingRect *mRect;
+    DkRotatingRectNew *mRect;
     QPointF mInitialPos;
     QPointF mPosGrab;
     int mParentIdx;
@@ -530,7 +530,7 @@ protected:
     DkVector mOldDiag = DkVector(-1.0f, -1.0f);
     DkVector mFixedDiag;
 
-    DkRotatingRect mRect;
+    DkRotatingRectNew mRect;
     QPen mPen;
     QBrush mBrush;
     QVector<DkTransformRect *> mCtrlPoints;
