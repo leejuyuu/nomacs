@@ -532,28 +532,12 @@ void DkRotatingRectNew::setPoly(QPolygonF &poly)
 
 QPolygonF DkRotatingRectNew::getClosedPoly() const
 {
-    const bool wValid = mRect.width() > 0;
-    const bool hValid = mRect.height() > 0;
-
-    QPolygonF p;
-    if (wValid && hValid) {
-        p = mRect;
-    } else if (!wValid && hValid) {
-        qDebug() << mRect.topLeft() << mRect.topRight();
-    }
-
-    return mPointMap.map(QPolygonF(mRect.normalized()));
+    return mPointMap.map(QPolygonF(mRect));
 }
 
 QPointF DkRotatingRectNew::getCenter() const
 {
-    if (mRectOld.empty())
-        return QPointF();
-
-    DkVector c1 = mRectOld[0];
-    DkVector c2 = mRectOld[2];
-
-    return ((c2 - c1) * 0.5f + c1).toQPointF();
+    return mRect.center();
 }
 
 QPointF DkRotatingRectNew::getTopLeft() const
