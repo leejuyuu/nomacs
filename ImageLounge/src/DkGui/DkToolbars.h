@@ -308,7 +308,7 @@ signals:
     void panSignal(bool checked);
     void cropSignal(bool cropToMetadata = false); // vs. crop
     void cancelSignal();
-    void aspectRatio(const DkVector &diag);
+    void aspectRatioChanged(const QSizeF &aspectRatio);
     void angleSignal(double angle);
     void colorSignal(const QBrush &brush);
     void paintHint(int paintMode);

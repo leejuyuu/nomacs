@@ -1512,25 +1512,9 @@ void DkEditableRect::updateDiagonal(int idx)
         mOldDiag = mRect.getDiagonal(idx);
 }
 
-void DkEditableRect::setFixedDiagonal(const DkVector &diag)
+void DkEditableRect::setFixedDiagonal(const QSizeF &aspectRatio)
 {
-    mFixedDiag = diag;
-
-    qDebug() << "after rotating: " << mFixedDiag.toQPointF();
-
-    // don't update in that case
-    if (diag.x == 0 || diag.y == 0)
-        return;
-    else
-        mFixedDiag.rotate(-mRect.getAngle());
-
-    QPointF c = mRect.getCenter();
-
-    if (!mRect.getPoly().isEmpty())
-        mRect.updateCorner(0, mRect.getPoly().at(0), mFixedDiag);
-
-    mRect.setCenter(c);
-    update();
+    mAspectRatio = aspectRatio;
 }
 
 void DkEditableRect::setPanning(bool panning)
@@ -1545,18 +1529,17 @@ void DkEditableRect::updateCorner(int idx, const QPointF &point, Qt::KeyboardMod
     if (changeState)
         mState = scaling;
 
-    DkVector diag = (modifiers & Qt::ShiftModifier || (mFixedDiag.x != 0 && mFixedDiag.y != 0)) ? mOldDiag
-                                                                                                : DkVector(); // braces
     QPointF p = point;
 
     if ((modifiers & Qt::ControlModifier) == 0)
         p = clipToImage(point);
 
-    mRect.updateCorner(idx, map(p), diag);
+    const QSizeF aspectRatio = (modifiers & Qt::ShiftModifier) ? mRect.size() : mAspectRatio;
+    mRect.updateCorner(idx, map(p), aspectRatio);
 
-    // edge control -> remove aspect ratio constraint
-    if (idx >= 4 && idx < 8)
-        emit aRatioSignal(QPointF(0, 0));
+    // // edge control -> remove aspect ratio constraint
+    // if (idx >= 4 && idx < 8)
+    //     emit aRatioSignal(QPointF(0, 0));
 
     update();
 }
@@ -1631,7 +1614,7 @@ QRect DkEditableRect::rect() const
 {
     QRect r;
     r.setTopLeft(mRect.getTopLeft().toPoint());
-    r.setSize(mRect.size());
+    r.setSize(mRect.size().toSize());
 
     return r;
 }
@@ -1753,11 +1736,9 @@ void DkEditableRect::mouseMoveEvent(QMouseEvent *event)
             DkVector diag;
 
             // when initializing shift should make the mRect a square
-            if (event->modifiers() == Qt::ShiftModifier)
-                diag = DkVector(1.0f, 1.0f);
-            else
-                diag = mFixedDiag;
-            mRect.updateCorner(2, map(clipPos), diag);
+            QSizeF aspectRatio = (event->modifiers() == Qt::ShiftModifier) ? QSizeF(1, 1) : mAspectRatio;
+
+            mRect.updateCorner(2, map(clipPos), aspectRatio);
             update();
         }
 
@@ -1963,7 +1944,7 @@ void DkCropWidget::createToolbar()
 
     connect(cropToolbar, &DkCropToolBar::cropSignal, this, &DkCropWidget::crop);
     connect(cropToolbar, &DkCropToolBar::cancelSignal, this, &DkCropWidget::hideSignal);
-    connect(cropToolbar, &DkCropToolBar::aspectRatio, this, &DkCropWidget::setFixedDiagonal);
+    connect(cropToolbar, &DkCropToolBar::aspectRatioChanged, this, &DkCropWidget::setFixedDiagonal);
     connect(cropToolbar, &DkCropToolBar::angleSignal, this, [this](double angle) {
         this->setAngle(angle);
     });

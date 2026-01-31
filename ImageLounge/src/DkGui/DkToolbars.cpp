@@ -1123,7 +1123,7 @@ void DkCropToolBar::onAspectRatioChanged(double horizontal, double vertical)
     mHorValBox->setValue(horizontal);
     mVerValBox->setValue(vertical);
 
-    emit aspectRatio(DkVector(horizontal, vertical));
+    emit aspectRatioChanged(QSizeF(horizontal, vertical));
 
     QString rs = QString::number(horizontal) + ":" + QString::number(vertical);
 

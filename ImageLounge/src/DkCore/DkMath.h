@@ -891,14 +891,14 @@ public:
     void setAllCorners(const QPointF &p);
     DkVector getDiagonal(int cIdx) const;
     QCursor cpCursor(int idx);
-    void updateCorner(int cIdx, QPointF nC, DkVector oldDiag = DkVector());
+    void updateCorner(int cIdx, QPointF nC, const QSizeF &aspectRatio);
     QPolygonF getPoly() const;
     void setPoly(QPolygonF &poly);
     QPolygonF getClosedPoly() const;
     QPointF getCenter() const;
     QPointF getTopLeft() const;
     void setSize(const QSizeF &s);
-    QSize size() const;
+    QSizeF size() const;
     void setCenter(const QPointF &center);
     double getAngle() const;
     float getAngleDeg() const;

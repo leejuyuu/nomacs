@@ -496,7 +496,7 @@ signals:
 public slots:
     void updateCorner(int idx, const QPointF &point, Qt::KeyboardModifiers modifier, bool changeState = false);
     void updateDiagonal(int idx);
-    void setFixedDiagonal(const DkVector &diag);
+    void setFixedDiagonal(const QSizeF &diag);
     void setAngle(double angle, bool apply = true);
     void setPanning(bool panning);
     void setPaintHint(int paintMode = rule_of_thirds);
@@ -529,6 +529,9 @@ protected:
     QPointF mClickPos;
     DkVector mOldDiag = DkVector(-1.0f, -1.0f);
     DkVector mFixedDiag;
+
+    // TODO: we probably shold not store this
+    QSizeF mAspectRatio;
 
     DkRotatingRectNew mRect;
     QPen mPen;

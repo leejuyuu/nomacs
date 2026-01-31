@@ -28,6 +28,7 @@
 #include "DkMath.h"
 
 #include <QTransform>
+#include <cmath>
 #include <qassert.h>
 
 namespace nmc
@@ -483,38 +484,99 @@ QCursor DkRotatingRectNew::cpCursor(int idx)
         return QCursor(Qt::SizeHorCursor);
 }
 
-void DkRotatingRectNew::updateCorner(int cIdx, QPointF nC, DkVector oldDiag)
+void DkRotatingRectNew::updateCorner(int cIdx, QPointF nC, const QSizeF &aspectRatio)
 {
-    Q_ASSERT(cIdx >= 0 && cIdx < 8);
-
     const QPointF newPos = mPointMapInverted.map(nC);
-    qDebug() << "updateCorner" << newPos;
-
+    const bool noAspectRatio = aspectRatio.width() <= 0 || aspectRatio.height() <= 0;
+    const QPointF center = mRect.center();
+    qDebug() << "updateCorner" << newPos << cIdx << aspectRatio << center;
     switch (cIdx) {
-    case 0:
-        mRect.setTopLeft(newPos);
+    case 0: {
+        if (noAspectRatio) {
+            mRect.setTopLeft(newPos);
+            break;
+        }
+
+        const QPointF vec = newPos - mRect.bottomRight();
+        const QSizeF newSize = aspectRatio.scaled(vec.x(), vec.y(), Qt::KeepAspectRatioByExpanding);
+        mRect.setLeft(mRect.right() + std::copysign(newSize.width(), vec.x()));
+        mRect.setTop(mRect.bottom() + std::copysign(newSize.height(), vec.y()));
         break;
-    case 1:
-        mRect.setTopRight(newPos);
+    }
+    case 1: {
+        if (noAspectRatio) {
+            mRect.setTopRight(newPos);
+            break;
+        }
+        const QPointF vec = newPos - mRect.bottomLeft();
+        const QSizeF newSize = aspectRatio.scaled(vec.x(), vec.y(), Qt::KeepAspectRatioByExpanding);
+        mRect.setRight(mRect.left() + std::copysign(newSize.width(), vec.x()));
+        mRect.setTop(mRect.bottom() + std::copysign(newSize.height(), vec.y()));
         break;
-    case 2:
-        mRect.setBottomRight(newPos);
+    }
+    case 2: {
+        if (noAspectRatio) {
+            mRect.setBottomRight(newPos);
+            break;
+        }
+
+        const QPointF vec = newPos - mRect.topLeft();
+        const QSizeF newSize = aspectRatio.scaled(vec.x(), vec.y(), Qt::KeepAspectRatioByExpanding);
+        mRect.setRight(mRect.left() + std::copysign(newSize.width(), vec.x()));
+        mRect.setBottom(mRect.top() + std::copysign(newSize.height(), vec.y()));
         break;
-    case 3:
-        mRect.setBottomLeft(newPos);
+    }
+    case 3: {
+        if (noAspectRatio) {
+            mRect.setBottomLeft(newPos);
+            break;
+        }
+
+        const QPointF vec = newPos - mRect.topRight();
+        const QSizeF newSize = aspectRatio.scaled(vec.x(), vec.y(), Qt::KeepAspectRatioByExpanding);
+        mRect.setLeft(mRect.right() + std::copysign(newSize.width(), vec.x()));
+        mRect.setBottom(mRect.top() + std::copysign(newSize.height(), vec.y()));
         break;
-    case 4:
+    }
+    case 4: {
         mRect.setTop(newPos.y());
+        if (noAspectRatio) {
+            break;
+        }
+        mRect.setWidth(std::copysign(mRect.height() / aspectRatio.height() * aspectRatio.width(), mRect.width()));
+        mRect.moveLeft(center.x() - mRect.width() / 2);
+        qDebug() << center.x() << mRect.center().x();
         break;
-    case 5:
+    }
+    case 5: {
         mRect.setRight(newPos.x());
+        if (noAspectRatio) {
+            break;
+        }
+        mRect.setHeight(std::copysign(mRect.width() / aspectRatio.width() * aspectRatio.height(), mRect.height()));
+        mRect.moveTop(center.y() - mRect.height() / 2);
         break;
-    case 6:
+    }
+    case 6: {
         mRect.setBottom(newPos.y());
+        if (noAspectRatio) {
+            break;
+        }
+        mRect.setWidth(std::copysign(mRect.height() / aspectRatio.height() * aspectRatio.width(), mRect.width()));
+        mRect.moveLeft(center.x() - mRect.width() / 2);
         break;
-    case 7:
+    }
+    case 7: {
         mRect.setLeft(newPos.x());
+        if (noAspectRatio) {
+            break;
+        }
+        mRect.setHeight(std::copysign(mRect.width() / aspectRatio.width() * aspectRatio.height(), mRect.height()));
+        mRect.moveTop(center.y() - mRect.height() / 2);
         break;
+    }
+    default:
+        Q_UNREACHABLE();
     }
 }
 
@@ -542,12 +604,7 @@ QPointF DkRotatingRectNew::getCenter() const
 
 QPointF DkRotatingRectNew::getTopLeft() const
 {
-    DkVector v = mRectOld[0];
-    v = v.minVec(mRectOld[1]);
-    v = v.minVec(mRectOld[2]);
-    v = v.minVec(mRectOld[3]);
-
-    return v.toQPointF();
+    return mPointMap.map(mRect.topLeft());
 }
 
 void DkRotatingRectNew::setSize(const QSizeF &s)
@@ -567,9 +624,9 @@ void DkRotatingRectNew::setSize(const QSizeF &s)
     rotate(angle);
 }
 
-QSize DkRotatingRectNew::size() const
+QSizeF DkRotatingRectNew::size() const
 {
-    return mRect.size().toSize();
+    return mRect.normalized().size();
 }
 
 void DkRotatingRectNew::setCenter(const QPointF &center)
