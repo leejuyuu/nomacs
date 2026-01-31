@@ -1385,8 +1385,6 @@ void DkTransformRect::mousePressEvent(QMouseEvent *event)
     if (event->buttons() == Qt::LeftButton) {
         mPosGrab = event->globalPosition();
         mInitialPos = geometry().topLeft();
-
-        emit updateDiagonal(mParentIdx);
     }
     qDebug() << "mouse pressed control point";
     QWidget::mousePressEvent(event);
@@ -1432,7 +1430,6 @@ DkEditableRect::DkEditableRect(const QRectF &rect, QWidget *parent, Qt::WindowFl
         mCtrlPoints.push_back(new DkTransformRect(idx, &this->mRect, this));
         mCtrlPoints[idx]->hide();
         connect(mCtrlPoints[idx], &DkTransformRect::ctrlMovedSignal, this, &DkEditableRect::updateCorner);
-        connect(mCtrlPoints[idx], &DkTransformRect::updateDiagonal, this, &DkEditableRect::updateDiagonal);
     }
 }
 
@@ -1503,16 +1500,7 @@ QPointF DkEditableRect::clipToImageForce(const QPointF &pos)
     return QPointF(x, y); // round
 }
 
-void DkEditableRect::updateDiagonal(int idx)
-{
-    // we need to store the old diagonal in order to enable "keep aspect ratio"
-    if (mRect.isEmpty())
-        mOldDiag = DkVector(-1.0f, -1.0f);
-    else
-        mOldDiag = mRect.getDiagonal(idx);
-}
-
-void DkEditableRect::setFixedDiagonal(const QSizeF &aspectRatio)
+void DkEditableRect::setAspectRatio(const QSizeF &aspectRatio)
 {
     mAspectRatio = aspectRatio;
 }
@@ -1944,7 +1932,7 @@ void DkCropWidget::createToolbar()
 
     connect(cropToolbar, &DkCropToolBar::cropSignal, this, &DkCropWidget::crop);
     connect(cropToolbar, &DkCropToolBar::cancelSignal, this, &DkCropWidget::hideSignal);
-    connect(cropToolbar, &DkCropToolBar::aspectRatioChanged, this, &DkCropWidget::setFixedDiagonal);
+    connect(cropToolbar, &DkCropToolBar::aspectRatioChanged, this, &DkCropWidget::setAspectRatio);
     connect(cropToolbar, &DkCropToolBar::angleSignal, this, [this](double angle) {
         this->setAngle(angle);
     });

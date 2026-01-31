@@ -424,7 +424,6 @@ public:
 
 signals:
     void ctrlMovedSignal(int, const QPointF &, Qt::KeyboardModifiers, bool);
-    void updateDiagonal(int);
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
@@ -495,8 +494,7 @@ signals:
 
 public slots:
     void updateCorner(int idx, const QPointF &point, Qt::KeyboardModifiers modifier, bool changeState = false);
-    void updateDiagonal(int idx);
-    void setFixedDiagonal(const QSizeF &diag);
+    void setAspectRatio(const QSizeF &diag);
     void setAngle(double angle, bool apply = true);
     void setPanning(bool panning);
     void setPaintHint(int paintMode = rule_of_thirds);
@@ -527,7 +525,6 @@ protected:
     QTransform mRtform;
     QPointF mPosGrab;
     QPointF mClickPos;
-    DkVector mOldDiag = DkVector(-1.0f, -1.0f);
     DkVector mFixedDiag;
 
     // TODO: we probably shold not store this

@@ -879,21 +879,14 @@ protected:
 class DllCoreExport DkRotatingRectNew
 {
 public:
-    DkRotatingRectNew(QRectF rect = QRectF());
+    DkRotatingRectNew(const QRectF &rect = QRectF());
     virtual ~DkRotatingRectNew();
-
-    friend std::ostream &operator<<(std::ostream &s, DkRotatingRectNew &r)
-    {
-        return r.put(s);
-    };
 
     bool isEmpty() const;
     void setAllCorners(const QPointF &p);
-    DkVector getDiagonal(int cIdx) const;
     QCursor cpCursor(int idx);
     void updateCorner(int cIdx, QPointF nC, const QSizeF &aspectRatio);
     QPolygonF getPoly() const;
-    void setPoly(QPolygonF &poly);
     QPolygonF getClosedPoly() const;
     QPointF getCenter() const;
     QPointF getTopLeft() const;
@@ -910,12 +903,9 @@ public:
     void setAngle(qreal angle);
 
 protected:
-    virtual std::ostream &put(std::ostream &s);
-
     QTransform mPointMap;
     QTransform mPointMapInverted;
     QRectF mRect;
-    QPolygonF mRectOld;
     std::optional<QRectF> mOuterBox;
     qreal mAngle = 0;
 };
