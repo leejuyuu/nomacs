@@ -889,16 +889,16 @@ public:
     QPolygonF getPoly() const;
     QPolygonF getClosedPoly() const;
     QPointF getCenter() const;
+    void moveCenter(const QPointF& center);
+    void translate (const QPointF& offset);
     QPointF getTopLeft() const;
     void setSize(const QSizeF &s);
     QSizeF size() const;
-    void setCenter(const QPointF &center);
     double getAngle() const;
-    float getAngleDeg() const;
-    void getTransform(QTransform &tForm, QPointF &size) const;
     QRectF toExifRect(const QSize &size) const;
     static DkRotatingRectNew fromExifRect(const QRectF &rect, const QSize &size, double angle);
     void transform(const QTransform &translation, const QTransform &rotation);
+    void normalize();
     void rotate(double angle);
     void setAngle(qreal angle);
 

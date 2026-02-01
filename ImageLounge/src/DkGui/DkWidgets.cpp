@@ -75,6 +75,7 @@
 #include <QVBoxLayout>
 #include <QVector2D>
 #include <QtConcurrentRun>
+#include <QtMath>
 
 namespace nmc
 {
@@ -1543,9 +1544,6 @@ void DkEditableRect::paintEvent(QPaintEvent *event)
     if (!mRect.isEmpty()) {
         // TODO: directly map the points (it's easier and not slower at all)
         p = mRect.getClosedPoly();
-        p = mTtform.map(p);
-        p = mRtform.map(p);
-        p = mTtform.inverted().map(p);
         if (mImgTform)
             p = mImgTform->map(p);
         if (mWorldTform)
@@ -1667,12 +1665,14 @@ void DkEditableRect::mousePressEvent(QMouseEvent *event)
         return;
     }
 
-    mPosGrab = map(QPointF(event->pos()));
     mClickPos = QPointF(event->pos());
+    qDebug() << "mousePressed" << mPosGrab << map(mClickPos);
+    mPosGrab = map(mClickPos);
+    mClickAngle = mRect.getAngle();
 
     if (mRect.isEmpty()) {
         mState = initializing;
-        setAngle(0);
+        mRect.setAngle(0);
     } else if (mRect.getPoly().containsPoint(mPosGrab, Qt::OddEvenFill)) {
         mState = moving;
     } else {
@@ -1732,33 +1732,30 @@ void DkEditableRect::mouseMoveEvent(QMouseEvent *event)
 
     } else if (mState == moving && event->buttons() == Qt::LeftButton) {
         QPointF dxy = posM - mPosGrab;
-        mRtform.translate(dxy.x(), dxy.y());
+        mRect.translate(dxy);
         mPosGrab = posM;
         update();
     } else if (mState == rotating && event->buttons() == Qt::LeftButton) {
-        DkVector c(mRect.getCenter());
-        DkVector xt(mPosGrab);
-        DkVector xn(posM);
+        const QPointF v1 = map(mClickPos) - mRect.getCenter();
+        const QPointF v2 = posM - mRect.getCenter();
+        const double angleRad = std::atan2(v2.y(), v2.x())-std::atan2(v1.y(), v1.x()) ;
 
-        // compute the direction vector;
-        xt = c - xt;
-        xn = c - xn;
-        angle = xn.angle() - xt.angle();
+        double newAngle = mClickAngle+ qRadiansToDegrees(angleRad);
 
-        // just rotate in CV_PI*0.25 steps if shift is pressed
+        // Lock angle to multiples of 45 degrees if shift is pressed
         if (event->modifiers() == Qt::ShiftModifier) {
-            double angleRound = DkMath::normAngleRad(angle + mRect.getAngle(), -CV_PI * 0.125, CV_PI * 0.125);
-            angle -= angleRound;
+            newAngle = std::round(newAngle/45)*45;
         }
 
-        setAngle(angle, false);
+        mRect.setAngle(newAngle);
+        update();
     }
 
     if (event->buttons() == Qt::LeftButton) {
         QPolygonF p = mRect.getPoly();
 
         // mRect is in logical coordinates, we want physical pixels for info display
-        const QTransform mat = mRtform * devicePixelRatioF();
+        QTransform mat = QTransform()* devicePixelRatioF();
         p = mat.map(p);
 
         float sAngle = DkMath::getReadableAngle(mRect.getAngle() + angle);
@@ -1809,7 +1806,9 @@ void DkEditableRect::mouseReleaseEvent(QMouseEvent *event)
 
     mState = do_nothing;
 
-    applyTransform();
+    mRect.normalize();
+    update();
+    emit updateRectSignal(rect());
     // QWidget::mouseReleaseEvent(event);
 }
 
@@ -1819,17 +1818,6 @@ void DkEditableRect::wheelEvent(QWheelEvent *event)
     update(); // this is an extra update - however we get rendering errors otherwise?!
 }
 
-void DkEditableRect::applyTransform()
-{
-    // apply transform
-    mRect.transform(mTtform, mRtform);
-
-    mRtform.reset();
-    mTtform.reset();
-    update();
-
-    emit updateRectSignal(rect());
-}
 
 void DkEditableRect::keyPressEvent(QKeyEvent *event)
 {
@@ -1870,32 +1858,12 @@ void DkEditableRect::setShowInfo(bool showInfo)
 
 void DkEditableRect::setRect(const QRect &rect)
 {
-    mRect.setCenter(rect.center());
     mRect.setSize(rect.size());
+    mRect.moveCenter(rect.center());
 
     update();
 }
 
-void DkEditableRect::setAngle(double angle, bool apply)
-{
-    DkVector c(mRect.getCenter());
-
-    if (!mTtform.isTranslating())
-        mTtform.translate(-c.x, -c.y);
-
-    mRtform.reset();
-    if (apply)
-        mRtform.rotateRadians(angle - mRect.getAngle());
-    else
-        mRtform.rotateRadians(angle);
-
-    if (apply)
-        applyTransform();
-    else {
-        emit angleSignal(mRect.getAngle() + angle);
-        update();
-    }
-}
 
 void DkEditableRect::setVisible(bool visible)
 {
@@ -1934,7 +1902,7 @@ void DkCropWidget::createToolbar()
     connect(cropToolbar, &DkCropToolBar::cancelSignal, this, &DkCropWidget::hideSignal);
     connect(cropToolbar, &DkCropToolBar::aspectRatioChanged, this, &DkCropWidget::setAspectRatio);
     connect(cropToolbar, &DkCropToolBar::angleSignal, this, [this](double angle) {
-        this->setAngle(angle);
+        mRect.setAngle(angle);
     });
     connect(cropToolbar, &DkCropToolBar::panSignal, this, &DkCropWidget::setPanning);
     connect(cropToolbar, &DkCropToolBar::paintHint, this, &DkCropWidget::setPaintHint);
@@ -1964,7 +1932,7 @@ void DkCropWidget::crop(bool cropToMetadata)
         return;
 
     if (!mRect.isEmpty()) {
-        QTransform mat = mRtform * devicePixelRatioF();
+        QTransform mat = QTransform() * devicePixelRatioF();
         QPolygonF poly = mat.map(mRect.getPoly());
         DkRotatingRect rect;
         rect.setPoly(poly);

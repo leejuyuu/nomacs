@@ -495,7 +495,6 @@ signals:
 public slots:
     void updateCorner(int idx, const QPointF &point, Qt::KeyboardModifiers modifier, bool changeState = false);
     void setAspectRatio(const QSizeF &diag);
-    void setAngle(double angle, bool apply = true);
     void setPanning(bool panning);
     void setPaintHint(int paintMode = rule_of_thirds);
     void setShadingHint(bool invert);
@@ -514,18 +513,15 @@ protected:
 
     QPointF clipToImage(const QPointF &pos);
     QPointF clipToImageForce(const QPointF &pos);
-    void applyTransform();
     void drawGuide(QPainter *painter, const QPolygonF &p, int paintMode);
     QPointF map(const QPointF &pos);
 
     int mState = do_nothing;
     QTransform *mImgTform = nullptr;
     QTransform *mWorldTform = nullptr;
-    QTransform mTtform;
-    QTransform mRtform;
     QPointF mPosGrab;
     QPointF mClickPos;
-    DkVector mFixedDiag;
+    qreal mClickAngle;
 
     // TODO: we probably shold not store this
     QSizeF mAspectRatio;

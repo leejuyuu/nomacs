@@ -487,7 +487,6 @@ void DkRotatingRectNew::updateCorner(int cIdx, QPointF nC, const QSizeF &aspectR
     const QPointF newPos = mPointMapInverted.map(nC);
     const bool noAspectRatio = aspectRatio.width() <= 0 || aspectRatio.height() <= 0;
     const QPointF center = mRect.center();
-    qDebug() << "updateCorner" << newPos << cIdx << aspectRatio << center;
     switch (cIdx) {
     case 0: {
         if (noAspectRatio) {
@@ -595,6 +594,16 @@ QPointF DkRotatingRectNew::getCenter() const
     return mRect.center();
 }
 
+void DkRotatingRectNew::moveCenter(const QPointF& center) {
+    qDebug() << "move center" << center;
+    mRect.moveCenter(center);
+}
+
+void DkRotatingRectNew::translate(const QPointF& offset) {
+    qDebug() << "translate" << offset;
+    mRect.translate(QTransform().rotate(-mAngle).map(offset));
+}
+
 QPointF DkRotatingRectNew::getTopLeft() const
 {
     return mPointMap.map(mRect.topLeft());
@@ -623,62 +632,6 @@ QSizeF DkRotatingRectNew::size() const
     return mRect.normalized().size();
 }
 
-void DkRotatingRectNew::setCenter(const QPointF &center)
-{
-    mRect.moveCenter(center);
-}
-
-float DkRotatingRectNew::getAngleDeg() const
-{
-    auto sAngle = (float)(getAngle() * DK_RAD2DEG);
-
-    while (sAngle > 90)
-        sAngle -= 180;
-    while (sAngle < -90)
-        sAngle += 180;
-
-    sAngle = qRound(sAngle * 100) / 100.0f; // round to 2 digits
-
-    return sAngle;
-}
-
-void DkRotatingRectNew::getTransform(QTransform &tForm, QPointF &size) const
-{
-    // if (mRectOld.size() < 4)
-    //     return;
-    //
-    // // default upper left corner is 0
-    // DkVector xV = DkVector(mRectOld[3] - mRectOld[0]).round();
-    // DkVector yV = DkVector(mRectOld[1] - mRectOld[0]).round();
-    //
-    // QPointF ul = QPointF(qRound(mRectOld[0].x()), qRound(mRectOld[0].y()));
-    // size = QPointF(xV.norm(), yV.norm());
-    //
-    // double angle = xV.angle();
-    // angle = DkMath::normAngleRad(angle, -CV_PI, CV_PI);
-    //
-    // // switch width/height for /\ and \/ quadrants
-    // if (std::abs(angle) > CV_PI * 0.25 && std::abs(angle) < CV_PI * 0.75) {
-    //     auto x = (float)size.x();
-    //     size.setX(size.y());
-    //     size.setY(x);
-    // }
-    //
-    // // invariance -> user does not want to make a difference between an upside down mRectOld
-    // if (angle > CV_PI * 0.25 && angle < CV_PI * 0.75) {
-    //     angle -= CV_PI * 0.5;
-    //     ul = mRectOld[1];
-    // } else if (angle > -CV_PI * 0.75 && angle < -CV_PI * 0.25) {
-    //     angle += CV_PI * 0.5;
-    //     ul = mRectOld[3];
-    // } else if (angle >= CV_PI * 0.75 || angle <= -CV_PI * 0.75) {
-    //     angle += CV_PI;
-    //     ul = mRectOld[2];
-    // }
-    //
-    // tForm.rotateRadians(-angle);
-    // tForm.translate(qRound(-ul.x()), qRound(-ul.y())); // round guarantees that pixels are not interpolated
-}
 
 QRectF DkRotatingRectNew::toExifRect(const QSize &size) const
 {
@@ -735,6 +688,10 @@ DkRotatingRectNew DkRotatingRectNew::fromExifRect(const QRectF &rect, const QSiz
     rr.rotate(-a);
 
     return rr;
+}
+
+void DkRotatingRectNew::normalize() {
+    mRect = mRect.normalized();
 }
 
 void DkRotatingRectNew::transform(const QTransform &translation, const QTransform &rotation)

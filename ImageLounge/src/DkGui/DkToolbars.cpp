@@ -1059,7 +1059,7 @@ void DkCropToolBar::onSwapActionTriggered()
 
 void DkCropToolBar::onAngleBoxValueChanged(double val)
 {
-    emit angleSignal(DK_DEG2RAD * val);
+    emit angleSignal(val);
 }
 
 void DkCropToolBar::angleChanged(double val)
