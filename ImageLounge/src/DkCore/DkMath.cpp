@@ -542,7 +542,6 @@ void DkRotatingRectNew::updateCorner(int cIdx, QPointF nC, const QSizeF &aspectR
         }
         mRect.setWidth(std::copysign(mRect.height() / aspectRatio.height() * aspectRatio.width(), mRect.width()));
         mRect.moveLeft(center.x() - mRect.width() / 2);
-        qDebug() << center.x() << mRect.center().x();
         break;
     }
     case 5: {
@@ -575,6 +574,10 @@ void DkRotatingRectNew::updateCorner(int cIdx, QPointF nC, const QSizeF &aspectR
     default:
         Q_UNREACHABLE();
     }
+
+    // The center moved, but in the rotated coordinates.
+    // Map the center back to the image coordinates, and recalculate the transform.
+    moveCenter(mPointMap.map(mRect.center()));
 }
 
 QPolygonF DkRotatingRectNew::getPoly() const
@@ -586,7 +589,8 @@ QPolygonF DkRotatingRectNew::getPoly() const
 
 QPolygonF DkRotatingRectNew::getClosedPoly() const
 {
-    return mPointMap.map(QPolygonF(mRect));
+    const auto v = mPointMap.map(QPolygonF(mRect));
+    return v;
 }
 
 QPointF DkRotatingRectNew::getCenter() const
@@ -594,14 +598,16 @@ QPointF DkRotatingRectNew::getCenter() const
     return mRect.center();
 }
 
-void DkRotatingRectNew::moveCenter(const QPointF& center) {
-    qDebug() << "move center" << center;
+void DkRotatingRectNew::moveCenter(const QPointF &center)
+{
     mRect.moveCenter(center);
+    updatePointMap();
 }
 
-void DkRotatingRectNew::translate(const QPointF& offset) {
-    qDebug() << "translate" << offset;
-    mRect.translate(QTransform().rotate(-mAngle).map(offset));
+void DkRotatingRectNew::translate(const QPointF &offset)
+{
+    mRect.translate(offset);
+    updatePointMap();
 }
 
 QPointF DkRotatingRectNew::getTopLeft() const
@@ -609,29 +615,21 @@ QPointF DkRotatingRectNew::getTopLeft() const
     return mPointMap.map(mRect.topLeft());
 }
 
+QPointF DkRotatingRectNew::bottomRight() const
+{
+    return mPointMap.map(mRect.bottomRight());
+}
+
 void DkRotatingRectNew::setSize(const QSizeF &s)
 {
     mRect.setSize(s);
-    // double angle = getAngle() - CV_PI * 0.5;
-    //
-    // QRectF r;
-    // r.setSize(s);
-    // r.moveCenter(getCenter());
-    //
-    // mRectOld = r;
-    //
-    // // assigning a QRectF to a QPolygonF results in a closed polygon - but we want it to be open so remove the last
-    // // point
-    // mRectOld.pop_back();
-    //
-    // rotate(angle);
+    updatePointMap();
 }
 
 QSizeF DkRotatingRectNew::size() const
 {
     return mRect.normalized().size();
 }
-
 
 QRectF DkRotatingRectNew::toExifRect(const QSize &size) const
 {
@@ -690,7 +688,8 @@ DkRotatingRectNew DkRotatingRectNew::fromExifRect(const QRectF &rect, const QSiz
     return rr;
 }
 
-void DkRotatingRectNew::normalize() {
+void DkRotatingRectNew::normalize()
+{
     mRect = mRect.normalized();
 }
 
@@ -751,8 +750,13 @@ void DkRotatingRectNew::setAngle(qreal angle)
 
     mAngle = angle;
 
+    updatePointMap();
+}
+
+void DkRotatingRectNew::updatePointMap()
+{
+    QTransform rot = QTransform().rotate(mAngle);
     const QPointF center = getCenter();
-    QTransform rot = QTransform().rotate(angle);
     const QPointF translation = (rot.map(-center) + center);
     rot.setMatrix(rot.m11(), rot.m12(), 0, rot.m21(), rot.m22(), 0, translation.x(), translation.y(), 1);
     mPointMap = rot;
@@ -760,7 +764,7 @@ void DkRotatingRectNew::setAngle(qreal angle)
     bool invertible;
     mPointMapInverted = rot.inverted(&invertible);
     if (!invertible) {
-        qWarning() << "DkRotatingRectNew::setAngle invert mPointMap failed";
+        qWarning() << "DkRotatingRectNew::updatePointMap invert mPointMap failed";
     }
 }
 

@@ -1706,9 +1706,6 @@ void DkEditableRect::mouseMoveEvent(QMouseEvent *event)
     } else if (mRect.isEmpty())
         setCursor(Qt::CrossCursor);
 
-    // additionally needed for showToolTip
-    double angle = 0;
-
     if (mState == initializing && event->buttons() == Qt::LeftButton) {
         QPointF clipPos = clipToImageForce(QPointF(event->pos()));
 
@@ -1718,7 +1715,7 @@ void DkEditableRect::mouseMoveEvent(QMouseEvent *event)
                     mCtrlPoints[idx]->show();
 
                 QPointF p = map(clipToImageForce(mClickPos));
-                mRect.setAllCorners(p);
+                mRect.moveCenter(p);
             }
 
             DkVector diag;
@@ -1738,13 +1735,13 @@ void DkEditableRect::mouseMoveEvent(QMouseEvent *event)
     } else if (mState == rotating && event->buttons() == Qt::LeftButton) {
         const QPointF v1 = map(mClickPos) - mRect.getCenter();
         const QPointF v2 = posM - mRect.getCenter();
-        const double angleRad = std::atan2(v2.y(), v2.x())-std::atan2(v1.y(), v1.x()) ;
+        const double angleRad = std::atan2(v2.y(), v2.x()) - std::atan2(v1.y(), v1.x());
 
-        double newAngle = mClickAngle+ qRadiansToDegrees(angleRad);
+        double newAngle = mClickAngle + qRadiansToDegrees(angleRad);
 
         // Lock angle to multiples of 45 degrees if shift is pressed
         if (event->modifiers() == Qt::ShiftModifier) {
-            newAngle = std::round(newAngle/45)*45;
+            newAngle = std::round(newAngle / 45) * 45;
         }
 
         mRect.setAngle(newAngle);
@@ -1755,10 +1752,11 @@ void DkEditableRect::mouseMoveEvent(QMouseEvent *event)
         QPolygonF p = mRect.getPoly();
 
         // mRect is in logical coordinates, we want physical pixels for info display
-        QTransform mat = QTransform()* devicePixelRatioF();
+        QTransform mat = QTransform() * devicePixelRatioF();
         p = mat.map(p);
 
-        float sAngle = DkMath::getReadableAngle(mRect.getAngle() + angle);
+        // FIXME: getReadableAngle
+        float sAngle = DkMath::getReadableAngle(mRect.getAngle());
         int height = qRound(DkVector(p[1] - p[0]).norm());
         int width = qRound(DkVector(p[3] - p[0]).norm());
 
@@ -1805,10 +1803,13 @@ void DkEditableRect::mouseReleaseEvent(QMouseEvent *event)
     }
 
     mState = do_nothing;
+    mPosGrab = {};
+    mClickAngle = 0;
+    mClickPos = {};
 
     mRect.normalize();
     update();
-    emit updateRectSignal(rect());
+    // emit updateRectSignal(rect());
     // QWidget::mouseReleaseEvent(event);
 }
 
@@ -1817,7 +1818,6 @@ void DkEditableRect::wheelEvent(QWheelEvent *event)
     QWidget::wheelEvent(event);
     update(); // this is an extra update - however we get rendering errors otherwise?!
 }
-
 
 void DkEditableRect::keyPressEvent(QKeyEvent *event)
 {
@@ -1863,7 +1863,6 @@ void DkEditableRect::setRect(const QRect &rect)
 
     update();
 }
-
 
 void DkEditableRect::setVisible(bool visible)
 {

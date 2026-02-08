@@ -889,9 +889,10 @@ public:
     QPolygonF getPoly() const;
     QPolygonF getClosedPoly() const;
     QPointF getCenter() const;
-    void moveCenter(const QPointF& center);
-    void translate (const QPointF& offset);
+    void moveCenter(const QPointF &center);
+    void translate(const QPointF &offset);
     QPointF getTopLeft() const;
+    QPointF bottomRight() const;
     void setSize(const QSizeF &s);
     QSizeF size() const;
     double getAngle() const;
@@ -902,7 +903,9 @@ public:
     void rotate(double angle);
     void setAngle(qreal angle);
 
-protected:
+private:
+    void updatePointMap();
+
     QTransform mPointMap;
     QTransform mPointMapInverted;
     QRectF mRect;
