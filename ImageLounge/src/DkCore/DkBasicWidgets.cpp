@@ -783,9 +783,12 @@ QRect DkRectWidget::rect() const
                  mSpCropRect[crop_height]->value());
 }
 
-void DkRectWidget::updateRect()
+void DkRectWidget::emitPositionChanged()
 {
-    emit updateRectSignal(rect());
+    emit positionChanged({
+        mSpCropRect[crop_x]->value(),
+        mSpCropRect[crop_y]->value(),
+    });
 }
 
 void DkRectWidget::createLayout()
@@ -795,24 +798,26 @@ void DkRectWidget::createLayout()
     mCropXLabel = new QLabel(tr("x:"));
     mSpCropRect[crop_x] = new QSpinBox(this);
     mCropXLabel->setBuddy(mSpCropRect[crop_x]);
+    connect(mSpCropRect[crop_x], &QSpinBox::valueChanged, this, &DkRectWidget::emitPositionChanged);
 
     mCropYLabel = new QLabel(tr("y:"));
     mSpCropRect[crop_y] = new QSpinBox(this);
-    mCropYLabel->setBuddy(mSpCropRect[crop_y]);
+    connect(mSpCropRect[crop_y], &QSpinBox::valueChanged, this, &DkRectWidget::emitPositionChanged);
 
     mCropWLabel = new QLabel(tr("width:"));
     mSpCropRect[crop_width] = new QSpinBox(this);
     mCropWLabel->setBuddy(mSpCropRect[crop_width]);
+    connect(mSpCropRect[crop_width], &QSpinBox::valueChanged, this, &DkRectWidget::widthChanged);
 
     mCropHLabel = new QLabel(tr("height:"));
     mSpCropRect[crop_height] = new QSpinBox(this);
     mCropHLabel->setBuddy(mSpCropRect[crop_height]);
+    connect(mSpCropRect[crop_height], &QSpinBox::valueChanged, this, &DkRectWidget::heightChanged);
 
     for (QSpinBox *sp : mSpCropRect) {
         sp->setSuffix(tr(" px"));
         sp->setMinimum(0);
         sp->setMaximum(100000);
-        connect(sp, QOverload<int>::of(&QSpinBox::valueChanged), this, &DkRectWidget::updateRect);
     }
 
     auto *cropLayout = new QHBoxLayout(this);

@@ -437,11 +437,6 @@ bool DkRotatingRectNew::isEmpty() const
     return mRect.width() == 0 || mRect.height() == 0;
 }
 
-void DkRotatingRectNew::setAllCorners(const QPointF &p)
-{
-    mRect = QRectF(p, QSize());
-}
-
 QCursor DkRotatingRectNew::cpCursor(int idx)
 {
     double angle = mAngle;
@@ -623,6 +618,34 @@ QPointF DkRotatingRectNew::bottomRight() const
 void DkRotatingRectNew::setSize(const QSizeF &s)
 {
     mRect.setSize(s);
+    updatePointMap();
+}
+
+void DkRotatingRectNew::setWidth(qreal width, const QSizeF &aspectRatio)
+{
+    Q_ASSERT(width >= 0);
+
+    const bool noAspectRatio = aspectRatio.width() <= 0 || aspectRatio.height() <= 0;
+    if (noAspectRatio) {
+        mRect.setWidth(width);
+    } else {
+        const QSizeF size = QSizeF(width, mRect.height());
+        mRect.setSize(aspectRatio.scaled(size, Qt::KeepAspectRatioByExpanding));
+    }
+    updatePointMap();
+}
+
+void DkRotatingRectNew::setHeight(qreal height, const QSizeF &aspectRatio)
+{
+    Q_ASSERT(height >= 0);
+
+    const bool noAspectRatio = aspectRatio.width() <= 0 || aspectRatio.height() <= 0;
+    if (noAspectRatio) {
+        mRect.setHeight(height);
+    } else {
+        const QSizeF size = QSizeF(mRect.width(), height);
+        mRect.setSize(aspectRatio.scaled(size, Qt::KeepAspectRatioByExpanding));
+    }
     updatePointMap();
 }
 

@@ -171,20 +171,6 @@ public:
         return angle;
     }
 
-    static float getReadableAngle(double angle)
-    {
-        double sAngle = angle * DK_RAD2DEG;
-
-        while (sAngle > 90)
-            sAngle -= 180;
-        while (sAngle < -90)
-            sAngle += 180;
-
-        sAngle = qRound(sAngle * 100) / 100.0f;
-
-        return (float)sAngle;
-    }
-
     static double distAngle(const double angle1, const double angle2)
     {
         double nAngle1 = normAngleRad(angle1);
@@ -883,7 +869,6 @@ public:
     virtual ~DkRotatingRectNew();
 
     bool isEmpty() const;
-    void setAllCorners(const QPointF &p);
     QCursor cpCursor(int idx);
     void updateCorner(int cIdx, QPointF nC, const QSizeF &aspectRatio);
     QPolygonF getPoly() const;
@@ -894,6 +879,8 @@ public:
     QPointF getTopLeft() const;
     QPointF bottomRight() const;
     void setSize(const QSizeF &s);
+    void setWidth(qreal width, const QSizeF &aspectRatio);
+    void setHeight(qreal height, const QSizeF &aspectRatio);
     QSizeF size() const;
     double getAngle() const;
     QRectF toExifRect(const QSize &size) const;

@@ -1666,7 +1666,6 @@ void DkEditableRect::mousePressEvent(QMouseEvent *event)
     }
 
     mClickPos = QPointF(event->pos());
-    qDebug() << "mousePressed" << mPosGrab << map(mClickPos);
     mPosGrab = map(mClickPos);
     mClickAngle = mRect.getAngle();
 
@@ -1749,37 +1748,34 @@ void DkEditableRect::mouseMoveEvent(QMouseEvent *event)
     }
 
     if (event->buttons() == Qt::LeftButton) {
-        QPolygonF p = mRect.getPoly();
+        qreal angle = mRect.getAngle();
+        // We used to display angle in [-90, 90] range
+        if (angle > 90) {
+            angle -= 180;
+        }
 
-        // mRect is in logical coordinates, we want physical pixels for info display
-        QTransform mat = QTransform() * devicePixelRatioF();
-        p = mat.map(p);
-
-        // FIXME: getReadableAngle
-        float sAngle = DkMath::getReadableAngle(mRect.getAngle());
-        int height = qRound(DkVector(p[1] - p[0]).norm());
-        int width = qRound(DkVector(p[3] - p[0]).norm());
+        const QSizeF size = mRect.size();
 
         // show coordinates
         QString info;
         QPoint tl;
 
-        if (sAngle == 0.0f || fabs(sAngle) == 90.0f) {
+        if (angle == 0.0f || std::fabs(angle) == 90.0f) {
+            // mRect is in logical coordinates, we want physical pixels for info display
+            QTransform mat = QTransform() * devicePixelRatioF();
             tl = mat.map(mRect.getTopLeft()).toPoint();
             info += "x: ";
         } else {
             // Because we rotate around the center, there's no need to do rotation.
             // However, we need to check whether the center is tranlated.
-            // Not sure why, but the tranlation is stored in mRtform in the above.
-            QTransform transform{mat.m11(), 0, 0, mat.m22(), mat.dx(), mat.dy()};
-            tl = transform.map(mRect.getCenter()).toPoint();
+            tl = mRect.getCenter().toPoint();
             info += "center x: ";
         }
         info += QString::number(tl.x()) + ", y: ";
         info += QString::number(tl.y()) + " | ";
-        info += QString::number(width) + " x ";
-        info += QString::number(height) + " px | ";
-        info += QString::number(sAngle) + dk_degree_str;
+        info += QString::number(size.width(), 'f', 0) + " x ";
+        info += QString::number(size.height(), 'f', 0) + " px | ";
+        info += QString::number(angle, 'f', 2) + dk_degree_str;
 
         if (mShowInfo) {
             QToolTip::showText(event->globalPosition().toPoint(), info, this);
@@ -1809,7 +1805,8 @@ void DkEditableRect::mouseReleaseEvent(QMouseEvent *event)
 
     mRect.normalize();
     update();
-    // emit updateRectSignal(rect());
+    // Use getter to get angle in [0, 180] range.
+    emit rectChanged(mRect.getTopLeft(), mRect.size(), mRect.getAngle());
     // QWidget::mouseReleaseEvent(event);
 }
 
@@ -1856,11 +1853,22 @@ void DkEditableRect::setShowInfo(bool showInfo)
     this->mShowInfo = showInfo;
 }
 
-void DkEditableRect::setRect(const QRect &rect)
+void DkEditableRect::onTopLeftChanged(const QPoint &pos)
 {
-    mRect.setSize(rect.size());
-    mRect.moveCenter(rect.center());
+    const QPointF offset = pos - mRect.getTopLeft();
+    mRect.translate(offset);
+    update();
+}
 
+void DkEditableRect::onWidthChanged(int width)
+{
+    mRect.setWidth(width, mAspectRatio);
+    update();
+}
+
+void DkEditableRect::onHeightChanged(int width)
+{
+    mRect.setHeight(width, mAspectRatio);
     update();
 }
 
@@ -1895,21 +1903,22 @@ void DkCropWidget::createToolbar()
     for (QAction *a : cropToolbar->actions())
         this->addAction(a);
 
-    connect(cropToolbar, &DkCropToolBar::updateRectSignal, this, &DkCropWidget::setRect);
+    connect(cropToolbar, &DkCropToolBar::positionChanged, this, &DkCropWidget::onTopLeftChanged);
+    connect(cropToolbar, &DkCropToolBar::widthChanged, this, &DkCropWidget::onWidthChanged);
+    connect(cropToolbar, &DkCropToolBar::heightChanged, this, &DkCropWidget::onHeightChanged);
 
     connect(cropToolbar, &DkCropToolBar::cropSignal, this, &DkCropWidget::crop);
     connect(cropToolbar, &DkCropToolBar::cancelSignal, this, &DkCropWidget::hideSignal);
     connect(cropToolbar, &DkCropToolBar::aspectRatioChanged, this, &DkCropWidget::setAspectRatio);
     connect(cropToolbar, &DkCropToolBar::angleSignal, this, [this](double angle) {
         mRect.setAngle(angle);
+        update();
     });
     connect(cropToolbar, &DkCropToolBar::panSignal, this, &DkCropWidget::setPanning);
     connect(cropToolbar, &DkCropToolBar::paintHint, this, &DkCropWidget::setPaintHint);
     connect(cropToolbar, &DkCropToolBar::shadingHint, this, &DkCropWidget::setShadingHint);
     connect(cropToolbar, &DkCropToolBar::showInfo, this, &DkCropWidget::setShowInfo);
-    connect(this, &DkCropWidget::angleSignal, cropToolbar, &DkCropToolBar::angleChanged);
-    connect(this, &DkCropWidget::aRatioSignal, cropToolbar, &DkCropToolBar::setAspectRatio);
-    connect(this, &DkCropWidget::updateRectSignal, cropToolbar, &DkCropToolBar::setRect);
+    connect(this, &DkCropWidget::rectChanged, cropToolbar, &DkCropToolBar::setRect);
 
     cropToolbar->loadSettings(); // need to this manually after connecting the slots
 }

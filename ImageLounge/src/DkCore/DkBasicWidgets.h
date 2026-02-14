@@ -256,10 +256,12 @@ public:
 public slots:
     void setRect(const QRect &r);
     void setSizeOnly(bool sizeOnly);
-    void updateRect();
+    void emitPositionChanged();
 
 signals:
-    void updateRectSignal(const QRect &r) const;
+    void positionChanged(const QPoint &pos);
+    void widthChanged(int width);
+    void heightChanged(int width);
 
 protected:
     void createLayout();

@@ -289,7 +289,7 @@ public:
 
 public slots:
     void setAspectRatio(const QPointF &aRatio);
-    void setRect(const QRect &r);
+    void setRect(const QPointF &topLeft, const QSizeF &size, double angle);
     void onCropActionTriggered();
     void onCancelActionTriggered();
     void onSwapActionTriggered();
@@ -314,7 +314,9 @@ signals:
     void paintHint(int paintMode);
     void shadingHint(bool invert);
     void showInfo(bool show);
-    void updateRectSignal(const QRect &r);
+    void positionChanged(const QPoint &pos);
+    void widthChanged(int width);
+    void heightChanged(int width);
 
 protected:
     void createLayout();

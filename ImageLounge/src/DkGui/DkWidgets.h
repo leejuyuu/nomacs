@@ -488,9 +488,8 @@ signals:
     void cropImageSignal(const DkRotatingRect &cropArea,
                          const QColor &bgCol = QColor(0, 0, 0, 0),
                          bool cropToMetaData = false) const;
-    void angleSignal(double angle) const;
-    void aRatioSignal(const QPointF &aRatio) const;
-    void updateRectSignal(const QRect &r) const;
+    void angleChanged(double angle) const;
+    void rectChanged(const QPointF &topLeft, const QSizeF &size, double angle) const;
 
 public slots:
     void updateCorner(int idx, const QPointF &point, Qt::KeyboardModifiers modifier, bool changeState = false);
@@ -499,7 +498,9 @@ public slots:
     void setPaintHint(int paintMode = rule_of_thirds);
     void setShadingHint(bool invert);
     void setShowInfo(bool showInfo);
-    void setRect(const QRect &rect);
+    void onTopLeftChanged(const QPoint &pos);
+    void onWidthChanged(int width);
+    void onHeightChanged(int height);
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;

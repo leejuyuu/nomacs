@@ -1004,7 +1004,9 @@ void DkCropToolBar::createLayout()
     addSeparator();
     addWidget(mCropRect);
 
-    connect(mCropRect, &DkRectWidget::updateRectSignal, this, &DkCropToolBar::updateRectSignal);
+    connect(mCropRect, &DkRectWidget::positionChanged, this, &DkCropToolBar::positionChanged);
+    connect(mCropRect, &DkRectWidget::widthChanged, this, &DkCropToolBar::widthChanged);
+    connect(mCropRect, &DkRectWidget::heightChanged, this, &DkCropToolBar::heightChanged);
 }
 
 void DkCropToolBar::setVisible(bool visible)
@@ -1027,9 +1029,10 @@ void DkCropToolBar::setAspectRatio(const QPointF &aRatio)
     mAspectRatio.setValue(aRatio.x(), aRatio.y());
 }
 
-void DkCropToolBar::setRect(const QRect &r)
+void DkCropToolBar::setRect(const QPointF &topLeft, const QSizeF &size, double angle)
 {
-    mCropRect->setRect(r);
+    mCropRect->setRect(QRect(topLeft.toPoint(), size.toSize()));
+    angleChanged(angle);
 }
 
 void DkCropToolBar::onCropActionTriggered()
@@ -1064,14 +1067,11 @@ void DkCropToolBar::onAngleBoxValueChanged(double val)
 
 void DkCropToolBar::angleChanged(double val)
 {
-    double angle = val * DK_RAD2DEG;
-    while (angle > 90)
-        angle -= 180;
-    while (angle <= -90)
-        angle += 180;
-
+    if (val > 90) {
+        val -= 180;
+    }
     mAngleBox->blockSignals(true);
-    mAngleBox->setValue(angle);
+    mAngleBox->setValue(val);
     mAngleBox->blockSignals(false);
 }
 
