@@ -33,6 +33,8 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #endif
 
+#include <any>
+
 namespace nmc
 {
 /**
@@ -286,7 +288,6 @@ struct DkWorkRange {
  *
  *   constexpr stuff is used here to prevent compiling kernel variants we don't use
  */
-template<typename Kernel>
 class DkKernelBase
 {
 public:
@@ -300,7 +301,7 @@ public:
     virtual ~DkKernelBase() = default;
 
 protected:
-    using EntryPoint = bool (*)(Kernel &, const DkWorkRange &); // signature of kernel entry point
+    using EntryPoint = bool (*)(const std::any &, const DkWorkRange &); // signature of kernel entry point
     using DispatchTable = std::array<EntryPoint, (int)ImgFmt::NFormats>; // map format to kernel entry point
 
     using FmtList = std::array<ImgFmt, (int)ImgFmt::NFormats>; // fixed-size required for constexpr, we'll ignore null
@@ -360,6 +361,7 @@ protected:
     }
 
     // build dispatch table; because it is constexpr the compiler only emits templates kernel requires
+    template<typename Kernel>
     static constexpr DispatchTable makeTable(FmtList formats)
     {
         DispatchTable table = {}; // unused entries are nullptr
@@ -384,7 +386,7 @@ protected:
     }
 
     // mapped dispatch helper, for kernels with two template parameters
-    template<ImgFmt SrcFmt>
+    template<typename Kernel, ImgFmt SrcFmt>
     static constexpr void setTablePair(DispatchTable &table, ImgFmt srcFmt, ImgFmt dstFmt)
     {
         using SrcType = typename ImgFmtToPixFormat<SrcFmt>::type;
@@ -408,6 +410,7 @@ protected:
 
     // mapped dispatch table, for kernels with two template parameters,
     // with a different source and destination pixel format
+    template<typename Kernel>
     static constexpr DispatchTable makeTable(FmtMap map)
     {
         DispatchTable table = {}; // unused entries are nullptr
@@ -418,14 +421,14 @@ protected:
             // clang-format off
             switch (srcFmt) {
             case ImgFmt::Invalid:  break; // already initialized to 0
-            case ImgFmt::Gray8:    setTablePair<ImgFmt::Gray8>(table, srcFmt, dstFmt); break;
-            case ImgFmt::Gray16:   setTablePair<ImgFmt::Gray16>(table, srcFmt, dstFmt); break;
-            case ImgFmt::BGR888:   setTablePair<ImgFmt::BGR888>(table, srcFmt, dstFmt); break;
-            case ImgFmt::RGB888:   setTablePair<ImgFmt::RGB888>(table, srcFmt, dstFmt); break;
-            case ImgFmt::ARGB32:   setTablePair<ImgFmt::ARGB32>(table, srcFmt, dstFmt); break;
-            case ImgFmt::RGBA8888: setTablePair<ImgFmt::RGBA8888>(table, srcFmt, dstFmt); break;
-            case ImgFmt::RGBA64:   setTablePair<ImgFmt::RGBA64>(table, srcFmt, dstFmt); break;
-            case ImgFmt::RGBAFP32: setTablePair<ImgFmt::RGBAFP32>(table, srcFmt, dstFmt); break;
+            case ImgFmt::Gray8:    setTablePair<Kernel, ImgFmt::Gray8>(table, srcFmt, dstFmt); break;
+            case ImgFmt::Gray16:   setTablePair<Kernel, ImgFmt::Gray16>(table, srcFmt, dstFmt); break;
+            case ImgFmt::BGR888:   setTablePair<Kernel, ImgFmt::BGR888>(table, srcFmt, dstFmt); break;
+            case ImgFmt::RGB888:   setTablePair<Kernel, ImgFmt::RGB888>(table, srcFmt, dstFmt); break;
+            case ImgFmt::ARGB32:   setTablePair<Kernel, ImgFmt::ARGB32>(table, srcFmt, dstFmt); break;
+            case ImgFmt::RGBA8888: setTablePair<Kernel, ImgFmt::RGBA8888>(table, srcFmt, dstFmt); break;
+            case ImgFmt::RGBA64:   setTablePair<Kernel, ImgFmt::RGBA64>(table, srcFmt, dstFmt); break;
+            case ImgFmt::RGBAFP32: setTablePair<Kernel, ImgFmt::RGBAFP32>(table, srcFmt, dstFmt); break;
             default: throw "invalid input or missing case label";
             }
             // clang-format on
@@ -436,7 +439,7 @@ protected:
     // invoke kernel from dispatch table
     static bool dispatch(const DispatchTable &table,
                          QImage::Format qtFormat,
-                         Kernel &kernel,
+                         std::any kernel,
                          const DkWorkRange &range,
                          bool serial = false)
     {
