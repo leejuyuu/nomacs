@@ -129,7 +129,7 @@ TEST(ImageToMat, Default)
 
     for (int flags : options) {
         SCOPED_TRACE("flags: " + QString::number(flags).toStdString());
-        auto native = DkNativeImage::fromImage(nullImg, flags);
+        auto native = DkNativeImage::fromImage(std::move(nullImg), flags);
         EXPECT_TRUE(native.img().isNull());
         EXPECT_TRUE(native.mat().empty());
     }
@@ -137,7 +137,7 @@ TEST(ImageToMat, Default)
         SCOPED_TRACE("flags: " + QString::number(flags).toStdString());
         auto native = DkConstNativeImage::fromImage(nullImg, flags);
         EXPECT_TRUE(native.img().isNull());
-        EXPECT_TRUE(native.mat().empty());
+        EXPECT_TRUE(native.constMat().empty());
     }
 
     {
@@ -185,7 +185,7 @@ TEST(ImageToMat, Mapped)
 
         // normal mode, no copying
         {
-            auto native = DkNativeImage::fromImage(img);
+            auto native = DkNativeImage::fromImage(std::move(img));
             EXPECT_EQ(native.img().constBits(), native.mat().ptr<uchar>(0)); // correct linkage
             EXPECT_EQ(native.img().constBits(), origBits); // no copy should occur, img.refcount==1
 
@@ -203,9 +203,10 @@ TEST(ImageToMat, Mapped)
 
         img = {}; // now outerCopy is the only reference, should be no deep copy once again
         {
-            auto native = DkNativeImage::fromImage(outerCopy);
+            const auto outerCopyBits = outerCopy.constBits();
+            auto native = DkNativeImage::fromImage(std::move(outerCopy));
             EXPECT_EQ(native.img().constBits(), native.mat().ptr<uchar>(0)); // copy construction; no issues as well
-            EXPECT_EQ(native.img().constBits(), outerCopy.constBits());
+            EXPECT_EQ(native.img().constBits(), outerCopyBits);
             EXPECT_EQ(native.img().constBits(), origBits);
         }
 
@@ -218,25 +219,23 @@ TEST(ImageToMat, Mapped)
         QImage cowImg = img; // refcount of img data is now > 1, forces deep copy
         EXPECT_EQ(cowImg.constBits(), img.constBits());
         {
-            auto native = DkNativeImage::fromImage(cowImg);
-            EXPECT_EQ(native.img().constBits(), native.mat().ptr<uchar>(0));
-            EXPECT_EQ(native.img().constBits(), cowImg.constBits()); // no copy/correct linkage
+            auto native = DkNativeImage::fromImage(std::move(cowImg));
+            EXPECT_EQ(native.img().constBits(), native.mat().ptr<uchar>(0)); // correct linkage
             EXPECT_NE(native.img().constBits(), origBits); // COW enforced, deep copy of img
 
             auto copy = native;
             EXPECT_EQ(copy.img().constBits(), copy.mat().ptr<uchar>(0)); // copy construction; no issues as well
-            EXPECT_EQ(copy.img().constBits(), cowImg.constBits());
         }
 
         // read-only mode, no copying
         {
             auto native = DkConstNativeImage::fromImage(img);
-            EXPECT_EQ(native.img().constBits(), native.mat().ptr<uchar>(0));
+            EXPECT_EQ(native.img().constBits(), native.constMat().ptr<uchar>(0));
             EXPECT_EQ(native.img().constBits(), img.constBits());
             EXPECT_EQ(native.img().constBits(), origBits);
 
             auto copy = native;
-            EXPECT_EQ(copy.img().constBits(), copy.mat().ptr<uchar>(0)); // copy construction; no issues as well
+            EXPECT_EQ(copy.img().constBits(), copy.constMat().ptr<uchar>(0)); // copy construction; no issues as well
             EXPECT_EQ(copy.img().constBits(), img.constBits());
 
             // native.img().fill(0); // does not compile
@@ -250,7 +249,7 @@ TEST(ImageToMat, Mapped)
         EXPECT_EQ(cowImg.constBits(), img.constBits());
         {
             auto native = DkConstNativeImage::fromImage(cowImg);
-            EXPECT_EQ(native.img().constBits(), native.mat().ptr<uchar>(0));
+            EXPECT_EQ(native.img().constBits(), native.constMat().ptr<uchar>(0));
             EXPECT_EQ(native.img().constBits(), cowImg.constBits());
             EXPECT_EQ(native.img().constBits(), origBits); // COW relaxed: not allowed to mutate img/mat
         }
@@ -279,7 +278,7 @@ TEST(ImageToMat, ChannelOrder)
             SCOPED_TRACE("native format: " + qEnumToString(native.img().format()));
             SCOPED_TRACE("native option: " + QString::number(options[i]).toStdString());
 
-            EXPECT_TRUE(checkPixel(native.mat())); // check channel[0] is set to 0xFF
+            EXPECT_TRUE(checkPixel(native.constMat())); // check channel[0] is set to 0xFF
         }
     }
 }
@@ -316,7 +315,7 @@ TEST(ImageToMat, Scaled)
             auto out = in.allocateLike(size);
             EXPECT_EQ(out.img().size(), size);
 
-            cv::resize(in.mat(), out.mat(), cv::Size(size.width(), size.height()), 0, 0, cv::INTER_NEAREST);
+            cv::resize(in.constMat(), out.mat(), cv::Size(size.width(), size.height()), 0, 0, cv::INTER_NEAREST);
             src = out.img();
         }
         EXPECT_TRUE(checkPixel(src));
