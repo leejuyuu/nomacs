@@ -499,10 +499,8 @@ QImage DkImage::rotateImage(const QImage &img, double angle)
 #if WITH_OPENCV
 
 // rgb->grayscale conversion in linear light
-class DkGrayScaleKernel : public DkKernelBase
+class DkGrayScaleKernel : public DkKernelBase<DkGrayScaleKernel>
 {
-    friend class DkKernelBase;
-
 public:
     Q_DISABLE_COPY(DkGrayScaleKernel)
     DkGrayScaleKernel() = delete;
@@ -518,6 +516,7 @@ protected:
     DkNativeImage mDst{};
     QColorTransform mSrcToLinear{};
 
+public:
     template<typename SrcFmt, typename DstFmt>
     static bool kernel(const std::any &arg, const DkWorkRange &range)
     {
@@ -585,6 +584,7 @@ protected:
         return true;
     }
 
+private:
     static constexpr FmtMap kMapOpaque = {{{ImgFmt::BGR888, ImgFmt::Gray16}, // output to wide Grayscale
                                            {ImgFmt::RGB888, ImgFmt::Gray16},
                                            {ImgFmt::ARGB32, ImgFmt::Gray16},
@@ -598,11 +598,11 @@ protected:
                                           {ImgFmt::RGBAFP32, ImgFmt::RGBAFP32}}};
 
     static constexpr int kCaps = cap_bgr | cap_rgb;
-    static constexpr DispatchTable kTableOpaque = makeTable<DkGrayScaleKernel>(kMapOpaque);
-    static constexpr DispatchTable kTableAlpha = makeTable<DkGrayScaleKernel>(kMapAlpha);
+    static constexpr DispatchTable kTableOpaque = {}; // makeTable<f>(kMapOpaque);
+    static constexpr DispatchTable kTableAlpha = {}; // makeTable<DkGrayScaleKernel>(kMapAlpha);
 
 public:
-    bool run() override
+    bool run()
     {
         QColorSpace srcColorSpace = mSrc.img().colorSpace();
         if (!srcColorSpace.isValid()) {
@@ -647,10 +647,10 @@ public:
 
         mDst = DkNativeImage::fromImage(std::move(dst));
 
-        return dispatch(table, kCaps, mSrc.img().format(), this, {0, mSrc.img().height()});
+        return dispatch(table, kCaps, mSrc.img().format(), {0, mSrc.img().height()});
     }
 
-    QImage result() const override
+    QImage result() const
     {
         return mDst.img();
     }
@@ -854,9 +854,7 @@ static void normalize(cv::Mat &mat,
 }
 
 // normalize to min/max of all channels (global normalization)
-struct DkNormalizeKernel : public DkKernelBase {
-    friend class DkKernelBase;
-
+struct DkNormalizeKernel : public DkKernelBase<DkNormalizeKernel> {
 public:
     Q_DISABLE_COPY(DkNormalizeKernel)
     DkNormalizeKernel() = delete;
@@ -870,6 +868,7 @@ public:
 protected:
     DkNativeImage mImg;
 
+public:
     template<typename Format>
     static bool kernel(const std::any &arg, const DkWorkRange &range)
     {
@@ -893,20 +892,21 @@ protected:
             normalize<Format>(mat, slice, {mn, mn, mn}, {mx, mx, mx});
         });
 
-        return true;
+        makeTable(kFormats) return true;
     }
 
+protected:
     static constexpr int kCaps = cap_gray | cap_rgb_invariant | cap_serial;
     static constexpr FmtList kFormats = listForKernelCaps(kCaps);
     static constexpr DispatchTable kTable = makeTable<DkNormalizeKernel>(kFormats);
 
 public:
-    bool run() override
+    bool run()
     {
-        return dispatch(kTable, kCaps, mImg.img().format(), this, {0, mImg.img().height()});
+        return dispatch(kTable, kCaps, mImg.img().format(), {0, mImg.img().height()});
     }
 
-    QImage result() const override
+    QImage result() const
     {
         return mImg.img();
     }
@@ -928,10 +928,8 @@ std::optional<QImage> DkImage::normImage(QImage &&src)
 
 #if WITH_OPENCV
 
-class DkAutoAdjustKernel : public DkKernelBase
+class DkAutoAdjustKernel : public DkKernelBase<DkAutoAdjustKernel>
 {
-    friend class DkKernelBase;
-
 public:
     Q_DISABLE_COPY(DkAutoAdjustKernel)
     DkAutoAdjustKernel() = delete;
@@ -945,6 +943,7 @@ public:
 protected:
     DkNativeImage mImg;
 
+public:
     template<typename Format>
     static bool kernel(const std::any &arg, const DkWorkRange &range)
     {
@@ -985,17 +984,18 @@ protected:
         return true;
     }
 
+protected:
     static constexpr int kCaps = cap_gray | cap_rgb_invariant | cap_serial;
     static constexpr FmtList kFormats = listForKernelCaps(kCaps);
     static constexpr DispatchTable kTable = makeTable<DkAutoAdjustKernel>(kFormats);
 
 public:
-    bool run() override
+    bool run()
     {
-        return dispatch(kTable, kCaps, mImg.img().format(), this, {0, mImg.img().height()});
+        return dispatch(kTable, kCaps, mImg.img().format(), {0, mImg.img().height()});
     }
 
-    QImage result() const override
+    QImage result() const
     {
         return mImg.img();
     }
@@ -1148,10 +1148,8 @@ QImage DkImage::cropToImage(const QImage &src, const DkRotatingRect &rect, const
 
 #ifdef WITH_OPENCV
 
-class DkHsvKernel : public DkKernelBase
+class DkHsvKernel : public DkKernelBase<DkHsvKernel>
 {
-    friend class DkKernelBase;
-
 public:
     DkHsvKernel() = delete;
     Q_DISABLE_COPY(DkHsvKernel)
@@ -1233,6 +1231,7 @@ protected:
         return {r, g, b};
     }
 
+public:
     template<typename Format>
     static bool kernel(const std::any &arg, const DkWorkRange &range)
     {
@@ -1267,17 +1266,18 @@ protected:
         return true;
     }
 
+protected:
     static constexpr int kCaps = cap_gray | cap_bgr | cap_rgb;
     static constexpr FmtList kFormats = listForKernelCaps(kCaps);
     static constexpr DispatchTable kTable = makeTable<DkHsvKernel>(kFormats);
 
 public:
-    bool run() override
+    bool run()
     {
-        return dispatch(kTable, kCaps, mImg.img().format(), this, {0, mImg.img().height()});
+        return dispatch(kTable, kCaps, mImg.img().format(), {0, mImg.img().height()});
     }
 
-    QImage result() const override
+    QImage result() const
     {
         return mImg.img();
     }
@@ -1388,9 +1388,8 @@ static cv::Mat combineLuts(const cv::Mat &a, const cv::Mat &b)
 }
 
 // kernel to apply a 16-bit LUT equally to all channels
-class DkLutKernel : DkKernelBase
+class DkLutKernel : DkKernelBase<DkLutKernel>
 {
-    friend class DkKernelBase; // needs visibility to kernel()
 public:
     Q_DISABLE_COPY(DkLutKernel)
     DkLutKernel() = delete;
@@ -1442,12 +1441,12 @@ protected:
     static constexpr DispatchTable kTable = makeTable<DkLutKernel>(kFormats);
 
 public:
-    bool run() override
+    bool run()
     {
-        return dispatch(kTable, kCaps, mImg.img().format(), this, {0, mImg.img().height()});
+        return dispatch(kTable, kCaps, mImg.img().format(), {0, mImg.img().height()});
     }
 
-    QImage result() const override
+    QImage result() const
     {
         return mImg.img();
     }
