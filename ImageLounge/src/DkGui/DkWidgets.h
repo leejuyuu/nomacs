@@ -44,6 +44,7 @@
 #include "DkBaseWidgets.h"
 #include "DkImageContainer.h"
 #include "DkMath.h"
+#include "DkViewPortTransformViewModel.h"
 
 class QDoubleSpinBox;
 class QFileIconProvider;
@@ -353,12 +354,15 @@ public:
         mThumb = {};
     }
 
+    void updateTransform(const QRectF &viewportRect);
+
 protected:
     DkViewPort *mViewPort{};
 
     QSize mOriginalImageSize{};
     QImage mThumb{};
     QTransform mImageToLocal{};
+    QRectF mViewPortRect{};
 
     bool mMouseMoved = false; // true if we handled a drag
     QPointF mLastMousePos; // set on mouse move
@@ -372,7 +376,6 @@ protected:
     // recompute thumbnail and transforms after imageUpdated()
     bool updateThumb();
 
-    QTransform viewPortToLocal() const;
     QTransform imageToLocal() const;
 
     // move original image in the viewport
@@ -388,18 +391,17 @@ public:
 
     DkOverview *getOverview() const;
 
-    void setZoomLevelRange(double min, double max);
+    void connectTransformViewModel(DkViewPortTransformViewModel *vm);
 
 signals:
     void zoomSignal(double zoomLevel);
 
-public slots:
+private:
+    void createLayout();
     void updateZoom(double zoomLevel);
     void onSbZoomValueChanged(double zoomLevel);
     void onSlZoomValueChanged(int zoomLevel);
-
-private:
-    void createLayout();
+    void setZoomLevelRange(double min, double max);
 
     DkOverview *mOverview = nullptr;
     QSlider *mSlZoom = nullptr;
