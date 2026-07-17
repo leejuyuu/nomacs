@@ -507,12 +507,10 @@ void DkViewPort::tcpSynchronize(QTransform relativeMatrix, bool force)
 
     // check if we need a synchronization
     if ((force || qApp->keyboardModifiers() == mAltMod || DkSettingsManager::param().sync().syncActions)) {
-        QPointF size = QPointF(width(), height()) / 2;
-        size = getWorldMatrix().inverted().map(size);
-        size = getImageMatrix().inverted().map(size);
-        size = QPointF(size.x() / getImageSize().width(), size.y() / getImageSize().height());
-
-        emit sendTransformSignal(getWorldMatrix(), getImageMatrix(), size);
+        const auto rCenter = transformVM()->relativeViewportCenter();
+        if (rCenter) {
+            emit sendTransformSignal(getWorldMatrix(), getImageMatrix(), rCenter.value());
+        }
     }
 }
 

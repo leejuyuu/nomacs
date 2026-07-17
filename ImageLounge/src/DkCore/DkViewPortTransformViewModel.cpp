@@ -472,6 +472,18 @@ void DkViewPortTransformViewModel::syncTransform(const QPointF &pos, qreal zoomL
     emit transformChanged();
 }
 
+std::optional<QPointF> DkViewPortTransformViewModel::relativeViewportCenter() const
+{
+    if (mImgRect.size().isEmpty()) {
+        return std::nullopt;
+    }
+
+    QPointF size = mViewportRect.center();
+    size = mWorldMatrix.inverted().map(size);
+    size = mImgMatrix.inverted().map(size);
+    return {{size.x() / mImgRect.width(), size.y() / mImgRect.height()}};
+}
+
 DkViewPortTransformViewModel::ZoomPos DkViewPortTransformViewModel::calcZoomCenterLimitToImageEdge(
     const std::optional<QPointF> &center) const
 {

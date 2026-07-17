@@ -43,6 +43,8 @@ public:
 
     void syncTransform(const QPointF &pos, qreal zoomLevel, bool isRelativeTranslation);
 
+    [[nodiscard]] std::optional<QPointF> relativeViewportCenter() const;
+
     [[nodiscard]] QRectF imgViewRect() const
     {
         return mImgViewRect;

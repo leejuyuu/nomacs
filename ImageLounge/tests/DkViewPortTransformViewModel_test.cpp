@@ -767,13 +767,10 @@ TEST_P(SyncTest, SyncTransform)
     vmSrc->setImgSize(params.srcImageSize, DkSettings::zoom_always_keep);
     vmTgt->setImgSize(params.tgtImageSize, DkSettings::zoom_always_keep);
 
-    const auto sync = [this, &params]() {
-        QPointF size = vmSrc->viewPortRect().center();
-        size = vmSrc->worldMatrix().inverted().map(size);
-        size = vmSrc->imgMatrix().inverted().map(size);
-        vmTgt->syncTransform({size.x() / params.srcImageSize.width(), size.y() / params.srcImageSize.height()},
-                             vmSrc->zoomLevel(),
-                             false);
+    const auto sync = [this]() {
+        const std::optional<QPointF> center = vmSrc->relativeViewportCenter();
+        ASSERT_TRUE(center);
+        vmTgt->syncTransform(*center, vmSrc->zoomLevel(), false);
     };
 
     const auto getRelCenter = [](DkViewPortTransformViewModel *vm, const QSizeF &imgSize) {
