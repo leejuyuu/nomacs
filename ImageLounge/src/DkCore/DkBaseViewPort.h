@@ -85,6 +85,11 @@ public:
     // image size in logical pixels (actual size divided by device pixel ratio)
     QSizeF getImageSize() const;
 
+    [[nodiscard]] bool isEmpty() const
+    {
+        return mImageVM->isEmpty();
+    }
+
     // getImageViewRect returns the rectangle that contains the image in the
     // coordinates of this widget.
     QRectF getImageViewRect() const;
