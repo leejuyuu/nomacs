@@ -82,9 +82,6 @@ public:
 
     virtual QImage getImage() const;
 
-    // image size in logical pixels (actual size divided by device pixel ratio)
-    QSizeF getImageSize() const;
-
     [[nodiscard]] bool isEmpty() const
     {
         return mImageVM->isEmpty();
@@ -233,6 +230,8 @@ protected:
 
     [[nodiscard]] qreal zoomLevel() const;
 
+    void updateImageSize(DkSettings::keepZoom keepZoom);
+
 private:
     bool gestureEvent(QGestureEvent *event);
 
@@ -251,5 +250,6 @@ private:
 
     std::unique_ptr<DkViewPortTransformViewModel> mTransformVM = nullptr;
     std::unique_ptr<DkViewPortImageViewModel> mImageVM = nullptr;
+    qreal mDevicePixelRatio = 1;
 };
 }

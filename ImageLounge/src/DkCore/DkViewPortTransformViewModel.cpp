@@ -87,8 +87,13 @@ void DkViewPortTransformViewModel::setWidgetSize(const QSize &size)
 
 void DkViewPortTransformViewModel::setImgSize(const QSizeF &size, std::optional<DkSettings::keepZoom> keepZoom)
 {
+    mImageSize = size;
+    updateImageRect(keepZoom);
+}
+
+void DkViewPortTransformViewModel::updateImageRect(std::optional<DkSettings::keepZoom> keepZoom)
+{
     const QSizeF oldSize = mImgRect.size();
-    mImgRect = QRectF({}, size);
     updateImageMatrix(keepZoom, oldSize);
 }
 
@@ -203,10 +208,13 @@ DkViewPortTransformViewModel::ZoomPos DkViewPortTransformViewModel::calcZoomCent
 void DkViewPortTransformViewModel::updateImageMatrix(std::optional<DkSettings::keepZoom> keepZoom,
                                                      const QSizeF &oldSize)
 {
-    if (mImgRect.size().isEmpty()) {
+    if (mImageSize.isEmpty()) {
         // Initial state has no image.
+        mImgRect = {};
         return;
     }
+
+    mImgRect.setSize(mImageSize / mDevicePixelRatio);
 
     const QRectF oldImgRect = mImgViewRect;
     const QTransform oldImgMatrix = mImgMatrix;

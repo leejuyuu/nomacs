@@ -62,6 +62,7 @@ DkBaseViewPort::DkBaseViewPort(bool inDialog, QWidget *parent, bool resetWhenZoo
     , mForceFastRendering{inDialog}
     , mTransformVM{std::make_unique<DkViewPortTransformViewModel>(devicePixelRatioF(), resetWhenZoomPastFit)}
     , mImageVM{std::make_unique<DkViewPortImageViewModel>()}
+    , mDevicePixelRatio{devicePixelRatioF()}
 {
     grabGesture(Qt::PanGesture);
     grabGesture(Qt::PinchGesture);
@@ -192,7 +193,7 @@ void DkBaseViewPort::setImage(const QImage &newImg)
 {
     mImageVM->setRasterImage(newImg);
     const bool kz = DkSettingsManager::param().display().keepZoom;
-    mTransformVM->setImgSize(getImageSize(), kz ? DkSettings::zoom_keep_same_size : DkSettings::zoom_never_keep);
+    updateImageSize(kz ? DkSettings::zoom_keep_same_size : DkSettings::zoom_never_keep);
     update();
 }
 
@@ -229,20 +230,21 @@ QImage DkBaseViewPort::getImage() const
     return img;
 }
 
-QSizeF DkBaseViewPort::getImageSize() const
+void DkBaseViewPort::updateImageSize(DkSettings::keepZoom keepZoom)
 {
-    if (mSvg) {
-        // qDebug() << "win: " << size() << "svg:" << mSvg->defaultSize() << "scaled:" <<
-        // mSvg->defaultSize().scaled(size(), Qt::KeepAspectRatio);
-        return mSvg->defaultSize().scaled(size(), Qt::KeepAspectRatio);
+#if QT_VERSION < QT_VERSION_CHECK(6, 6, 0)
+    // Newer Qt got updated devicePixelRatio from event,
+    // older Qt need to check when image update.
+    if (devicePixelRatioF() != mDevicePixelRatio) {
+        mDevicePixelRatio = devicePixelRatioF();
+        mTransformVM->setDevicePixelRatio(mDevicePixelRatio);
     }
+#endif
 
-    // HiDPI: Pretend the image is smaller and avoid rewriting scaling/translating logic
-    // At 100%, this gives mImgViewRect.size()*dpr == img.rect().size(), so QPainter skips device scaling
-    // - this must be reversed only when reaching into the image pixels (extract subimage, eyedropper tool, etc)
-    // - we must take care to avoid rounding as this creates a fraction
-
-    return QSizeF(mImageVM->image().size()) / devicePixelRatioF();
+    // SVG need to multiply devicePixelRatio to maintain old behavior.
+    mTransformVM->setImgSize(mSvg ? mSvg->defaultSize().scaled(size(), Qt::KeepAspectRatio) * devicePixelRatioF()
+                                  : mImageVM->image().size(),
+                             keepZoom);
 }
 
 QRectF DkBaseViewPort::getImageViewRect() const

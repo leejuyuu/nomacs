@@ -389,8 +389,7 @@ void DkViewPort::setImage(const QImage &newImg)
         imageVM()->setMovie(movieData->data, movieData->format, movieData->filename);
     }
 
-    transformVM()->setImgSize(getImageSize(),
-                              static_cast<DkSettings::keepZoom>(DkSettingsManager::param().display().keepZoom));
+    updateImageSize(static_cast<DkSettings::keepZoom>(DkSettingsManager::param().display().keepZoom));
 
     DkActionManager::instance().enableImageActions(!newImg.isNull());
 
@@ -926,8 +925,7 @@ bool DkViewPort::event(QEvent *event)
 {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
     if (event->type() == QEvent::DevicePixelRatioChange) {
-        // image matrix includes dpr adjustment
-        transformVM()->setImgSize(getImageSize());
+        transformVM()->setDevicePixelRatio(devicePixelRatioF());
     }
 #endif
 

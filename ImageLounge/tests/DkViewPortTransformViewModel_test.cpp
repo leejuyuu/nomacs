@@ -238,6 +238,38 @@ TEST_F(DkViewPortTransformViewModelTest, ZoomToFit)
     EXPECT_DOUBLE_EQ(vm->zoomLevel(), 0.25);
 }
 
+TEST(DkViewPortTransformViewModelHiDpiTest, MapsWidgetCoordinatesToImagePixels)
+{
+    constexpr double devicePixelRatio = 2.0;
+    DkViewPortTransformViewModel vm(devicePixelRatio, false);
+
+    vm.setWidgetSize(QSize(1000, 800));
+    // setImgSize() receives the raster size expressed in logical widget units.
+    vm.setImgSize(QSize(2000, 1200));
+    vm.setDevicePixelRatio(devicePixelRatio);
+
+    EXPECT_TRUE(assertClose(vm.imgViewRect(), QRectF({0, 100}, QSizeF(1000, 600))));
+    EXPECT_TRUE(assertClose(vm.mapToImagePixel(QPointF(500, 400)), QPointF(1000, 600)));
+    EXPECT_TRUE(assertClose(vm.mapToImagePixel(QPointF(0, 100)), QPointF(0, 0)));
+}
+
+TEST(DkViewPortTransformViewModelHiDpiTest, KeepsPixelMappingAfterDevicePixelRatioChange)
+{
+    DkViewPortTransformViewModel vm(2.0, false);
+    constexpr QSize imagePixelSize(2000, 1200);
+
+    vm.setWidgetSize(QSize(1000, 800));
+    vm.setImgSize(imagePixelSize);
+    EXPECT_TRUE(assertClose(vm.mapToImagePixel(QPointF(500, 400)), QPointF(1000, 600)));
+
+    // The DPR and logical image size must be updated together when changing screens.
+    vm.setDevicePixelRatio(1.0);
+    // vm.setImgSize(imagePixelSize);
+
+    EXPECT_TRUE(assertClose(vm.imgViewRect(), QRectF({0, 100}, QSizeF(1000, 600))));
+    EXPECT_TRUE(assertClose(vm.mapToImagePixel(QPointF(500, 400)), QPointF(1000, 600)));
+}
+
 struct SetWidgetSizeTestParam {
     std::string_view desc;
     QSize initialWidgetSize;

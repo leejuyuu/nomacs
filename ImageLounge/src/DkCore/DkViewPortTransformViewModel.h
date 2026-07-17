@@ -58,6 +58,7 @@ public:
     void setDevicePixelRatio(double v)
     {
         mDevicePixelRatio = v;
+        updateImageRect(std::nullopt);
     }
 
     void setWidgetSize(const QSize &size);
@@ -160,6 +161,7 @@ private:
     QTransform mWorldMatrix;
     QRectF mImgViewRect;
     QRectF mViewportRect;
+    QSizeF mImageSize; // We still need this to be double because of SVGs scale.
     QRectF mImgRect;
     ZoomLevelSettingProvider mZoomLevelSettingProvider;
     PanBoundarySettingProvider mPanBoundarySettingProvider;
@@ -200,6 +202,8 @@ private:
 
     PanBoundary panBoundary() const;
     PanCondition panCondition() const;
+
+    void updateImageRect(std::optional<DkSettings::keepZoom> keepZoom);
 };
 
 // scaleKeepAspectRatioAndCenter creates a transformation that
