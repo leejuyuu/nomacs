@@ -241,10 +241,7 @@ void DkBaseViewPort::updateImageSize(DkSettings::keepZoom keepZoom)
     }
 #endif
 
-    // SVG need to multiply devicePixelRatio to maintain old behavior.
-    mTransformVM->setImgSize(mSvg ? mSvg->defaultSize().scaled(size(), Qt::KeepAspectRatio) * devicePixelRatioF()
-                                  : mImageVM->image().size(),
-                             keepZoom);
+    mTransformVM->setImgSize(mSvg ? mSvg->defaultSize() : mImageVM->image().size(), keepZoom);
 }
 
 QRectF DkBaseViewPort::getImageViewRect() const
