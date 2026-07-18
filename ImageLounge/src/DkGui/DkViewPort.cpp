@@ -923,12 +923,6 @@ void DkViewPort::resizeEvent(QResizeEvent *event)
 // mouse events --------------------------------------------------------------------
 bool DkViewPort::event(QEvent *event)
 {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
-    if (event->type() == QEvent::DevicePixelRatioChange) {
-        transformVM()->setDevicePixelRatio(devicePixelRatioF());
-    }
-#endif
-
     // ok obviously QGraphicsView eats all mouse events -> so we simply redirect these to QWidget in order to get them
     // delivered here
     if (event->type() == QEvent::MouseButtonPress || event->type() == QEvent::MouseButtonDblClick
@@ -940,10 +934,10 @@ bool DkViewPort::event(QEvent *event)
         // qDebug() << "redirecting event...";
         //  mouse events that double are now fixed, since the mViewport is now overlayed by the mController
         return QWidget::event(event);
-    } else {
-        // qDebug() << "not redirecting - type: " << event->type();
-        return DkBaseViewPort::event(event);
     }
+
+    // qDebug() << "not redirecting - type: " << event->type();
+    return DkBaseViewPort::event(event);
 }
 
 void DkViewPort::dragLeaveEvent(QDragLeaveEvent *event)

@@ -298,8 +298,15 @@ void DkBaseViewPort::resizeEvent(QResizeEvent *event)
 bool DkBaseViewPort::event(QEvent *event)
 {
     // TODO: check if we still need this
-    if (event->type() == QEvent::Gesture)
+    if (event->type() == QEvent::Gesture) {
         return gestureEvent(static_cast<QGestureEvent *>(event));
+    }
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
+    if (event->type() == QEvent::DevicePixelRatioChange) {
+        transformVM()->setDevicePixelRatio(devicePixelRatioF());
+    }
+#endif
 
     return QGraphicsView::event(event);
 }
