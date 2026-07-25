@@ -446,7 +446,7 @@ DkBaseViewPort::RenderParams DkBaseViewPort::getRenderParams(double devicePixelR
     // Rect to draw image, with world matrix enabled
     QRectF dstRect = worldMatrix.inverted().mapRect(viewRect);
 
-    return {devicePixelRatio, imgViewRect, worldMatrix, dstRect, viewRect, deviceRect, deviceRect.size()};
+    return {worldMatrix, dstRect, viewRect, deviceRect, deviceRect.size()};
 }
 
 void DkBaseViewPort::renderImage(QPainter &painter, const QImage &img, const RenderParams &params)

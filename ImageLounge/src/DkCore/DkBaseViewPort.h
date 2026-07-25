@@ -167,8 +167,6 @@ protected:
      */
     struct RenderParams {
         // inputs to getRenderParams()
-        double devicePixelRatio; // scale factor from viewPort to screen/device
-        QRectF imgViewRect; // image rect scaled and centered to viewPort, logical coordinates
         QTransform worldMatrix; // transform applied to imgViewRect (zoom & pan) => viewPort coordinates
         // outputs
         QRectF dstRect; // target rect for drawImage() with world matrix
