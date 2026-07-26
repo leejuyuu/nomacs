@@ -167,10 +167,10 @@ protected:
      */
     struct RenderParams {
         // inputs to getRenderParams()
-        QTransform worldMatrix; // transform applied to imgViewRect (zoom & pan) => viewPort coordinates
+        QTransform imageToWidgetTransform; // transform applied to image coordinates to viewPort logical coordinates
         // outputs
-        QRectF dstRect; // target rect for drawImage() with world matrix
-        QRectF viewRect; // target rect for drawImage() without world matrix
+        QRectF dstRect; // target rect for drawImage() with imageToWidgetTransform
+        QRectF viewRect; // target rect for drawImage() without imageToWidgetTransform
         QRect deviceRect; // source rect in screen/target coordinates, for read-back from render target
         QSize imageSize; // size of image needed for AA (rounded to device pixels)
     };

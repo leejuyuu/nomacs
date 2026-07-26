@@ -266,7 +266,7 @@ void DkBaseViewPort::paintEvent(QPaintEvent *event)
     QPainter painter(viewport());
 
     if (!mImageVM->isEmpty()) {
-        painter.setWorldTransform(mTransformVM->worldMatrix());
+        painter.setWorldTransform(imageToWidgetTransform());
 
         // don't interpolate - we have a sophisticated anti-aliasing methods
         //// don't interpolate if we are forced to, at 100% or we exceed the maximal interpolation level
@@ -469,7 +469,7 @@ QImage DkBaseViewPort::renderBuffer(QImage::Format format) const
 
 void DkBaseViewPort::renderComposite(QPainter &painter, const QImage &img, const RenderParams &params, int flags) const
 {
-    painter.setWorldTransform(params.worldMatrix);
+    painter.setWorldTransform(params.imageToWidgetTransform);
     if (flags & draw_background) {
         eraseBackground(painter);
     }
@@ -483,9 +483,9 @@ void DkBaseViewPort::renderComposite(QPainter &painter, const QImage &img, const
 
 void DkBaseViewPort::draw(QPainter &frontPainter, double opacity, int flags)
 {
-    const QRectF imgViewRect = mTransformVM->imgViewRect();
+    const QRectF imgRect = mTransformVM->imgRect();
     const qreal dpr = devicePixelRatioF();
-    RenderParams params = getRenderParams(dpr, frontPainter.worldTransform(), imgViewRect);
+    RenderParams params = getRenderParams(dpr, frontPainter.worldTransform(), imgRect);
 
     // this may return the size we want or give the full size image and rescale in the background
     const QImage img = mImageVM->downsampled(params.imageSize,
@@ -544,9 +544,9 @@ void DkBaseViewPort::draw(QPainter &frontPainter, double opacity, int flags)
     QPainter &imgPainter = backPainter ? *(backPainter.get()) : frontPainter;
 
     if (mSvg && mSvg->isValid()) {
-        mSvg->render(&imgPainter, imgViewRect);
+        mSvg->render(&imgPainter, imgRect);
     } else if (mMovie && mMovie->isValid()) {
-        imgPainter.drawPixmap(imgViewRect, mMovie->currentPixmap(), mMovie->frameRect());
+        imgPainter.drawPixmap(imgRect, mMovie->currentPixmap(), mMovie->frameRect());
     } else {
         renderImage(imgPainter, img, params);
     }

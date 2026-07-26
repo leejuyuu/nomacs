@@ -326,7 +326,7 @@ void DkViewPort::onImageLoaded(QSharedPointer<DkImageContainerT> image)
     const bool doFade = wasImageLoaded && dpy.transition != DkSettings::trans_appear && dpy.animationDuration > 0.0
         && (mController->getPlayer()->isPlaying() || window()->isFullScreen() || dpy.alwaysAnimate);
     if (doFade) {
-        mAnimationParams = getRenderParams(devicePixelRatio(), getWorldMatrix(), transformVM()->imgViewRect());
+        mAnimationParams = getRenderParams(devicePixelRatio(), imageToWidgetTransform(), transformVM()->imgRect());
         mAnimationBuffer = imageVM()->downsampled(mAnimationParams.imageSize,
                                                   DkImage::targetColorSpace(this),
                                                   DkImage::targetFormat(),
@@ -706,7 +706,7 @@ void DkViewPort::paintEvent(QPaintEvent *event)
         painter.setBrush(backgroundBrush());
         painter.drawRect(QRect(QPoint(), size()));
 
-        painter.setWorldTransform(getWorldMatrix());
+        painter.setWorldTransform(imageToWidgetTransform());
 
         const qreal zl = zoomLevel();
         // interpolate between 100% and max interpolate level
@@ -725,8 +725,8 @@ void DkViewPort::paintEvent(QPaintEvent *event)
                 // TODO: blend images in linear colorspace for nicer result
 
                 const RenderParams newParams = getRenderParams(devicePixelRatio(),
-                                                               getWorldMatrix(),
-                                                               transformVM()->imgViewRect());
+                                                               imageToWidgetTransform(),
+                                                               transformVM()->imgRect());
                 bool newHasAlpha = imageVM()->alphaChannelUsed();
                 bool oldHasAlpha = mAnimationBufferHasAlpha;
 
@@ -755,7 +755,7 @@ void DkViewPort::paintEvent(QPaintEvent *event)
                     }
 
                     // Draw the cross-dissolved region
-                    clipRect = newParams.worldMatrix.inverted().mapRect(clipRect);
+                    clipRect = newParams.imageToWidgetTransform.inverted().mapRect(clipRect);
                     painter.setClipRect(clipRect);
                     draw(painter, 1.0, draw_image | draw_pattern);
                     painter.setClipping(false);
@@ -764,20 +764,20 @@ void DkViewPort::paintEvent(QPaintEvent *event)
                 // Fade-out old image
                 double oldOpacity = painter.opacity();
                 painter.setOpacity(mAnimationValue);
-                painter.setTransform(mAnimationParams.worldMatrix);
+                painter.setTransform(mAnimationParams.imageToWidgetTransform);
                 renderImage(painter, mAnimationBuffer, mAnimationParams);
                 painter.setOpacity(oldOpacity);
                 break;
             }
             case DkSettings::trans_swipe: {
                 RenderParams params = getRenderParams(devicePixelRatio(),
-                                                      getWorldMatrix(),
-                                                      transformVM()->imgViewRect());
+                                                      imageToWidgetTransform(),
+                                                      transformVM()->imgRect());
                 QRectF viewRect = params.viewRect;
                 double total = mNextSwipe ? width() - viewRect.x() //
                                           : -(viewRect.x() + viewRect.width());
                 double dx = total * mAnimationValue;
-                painter.setTransform(params.worldMatrix * QTransform::fromTranslate(dx, 0));
+                painter.setTransform(params.imageToWidgetTransform * QTransform::fromTranslate(dx, 0));
                 draw(painter, 1.0);
 
                 viewRect = mAnimationParams.viewRect;
@@ -785,7 +785,7 @@ void DkViewPort::paintEvent(QPaintEvent *event)
                                    : width() - viewRect.x();
                 dx = total * (1.0 - mAnimationValue);
 
-                painter.setTransform(mAnimationParams.worldMatrix * QTransform::fromTranslate(dx, 0));
+                painter.setTransform(mAnimationParams.imageToWidgetTransform * QTransform::fromTranslate(dx, 0));
                 if (DkSettingsManager::param().display().tpPattern && mAnimationBufferHasAlpha) {
                     renderPattern(painter, mAnimationParams);
                 }
@@ -1641,7 +1641,7 @@ void DkViewPortFrameless::paintEvent(QPaintEvent *event)
 {
     if (!window()->isFullScreen()) {
         QPainter painter(viewport());
-        painter.setWorldTransform(getWorldMatrix());
+        painter.setWorldTransform(imageToWidgetTransform());
         drawFrame(painter);
         painter.end();
     }
@@ -1739,16 +1739,16 @@ void DkViewPortFrameless::drawFrame(QPainter &painter)
 
     QRectF frameRect;
 
-    const QRectF imgViewRect = transformVM()->imgViewRect();
-    qreal fs = qMin(imgViewRect.width(), imgViewRect.height()) * 0.1;
+    const QRectF imgRect = transformVM()->imgRect();
+    qreal fs = qMin(imgRect.width(), imgRect.height()) * 0.1 * transformVM()->zoomLevel();
 
     // looks pretty bad if the frame is too small
     if (fs < 4)
         return;
 
-    frameRect = imgViewRect;
+    frameRect = imgRect;
     frameRect.setSize(frameRect.size() + QSize(qRound(fs), qRound(fs)));
-    frameRect.moveCenter(imgViewRect.center());
+    frameRect.moveCenter(imgRect.center());
 
     painter.drawRect(frameRect);
 }

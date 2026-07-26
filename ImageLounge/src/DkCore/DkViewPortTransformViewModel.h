@@ -45,6 +45,11 @@ public:
 
     [[nodiscard]] std::optional<QPointF> relativeViewportCenter() const;
 
+    [[nodiscard]] QRectF imgRect() const
+    {
+        return mImgRect;
+    }
+
     [[nodiscard]] QRectF imgViewRect() const
     {
         return mImgViewRect;
