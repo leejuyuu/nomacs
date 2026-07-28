@@ -502,7 +502,7 @@ void DkViewPort::tcpSynchronize(QTransform relativeMatrix, bool force)
     if ((force || qApp->keyboardModifiers() == mAltMod || DkSettingsManager::param().sync().syncActions)) {
         const auto rCenter = transformVM()->relativeViewportCenter();
         if (rCenter) {
-            emit sendTransformSignal(getWorldMatrix(), getImageMatrix(), rCenter.value());
+            emit sendTransformSignal(imageToWidgetTransform(), {}, rCenter.value());
         }
     }
 }
@@ -807,8 +807,7 @@ void DkViewPort::paintEvent(QPaintEvent *event)
         DkRotatingRect r = mCropRect;
         QPolygonF polyF;
         polyF = r.getClosedPoly();
-        polyF = getImageMatrix().map(polyF);
-        polyF = getWorldMatrix().map(polyF);
+        polyF = imageToWidgetTransform().map(polyF);
         path.addPolygon(polyF.toPolygon());
 
         painter.setPen(Qt::NoPen);
@@ -1222,8 +1221,7 @@ void DkViewPort::setFullScreen(bool fullScreen)
 
 QPoint DkViewPort::mapToImage(const QPoint &windowPos) const
 {
-    QPointF imgPos = getWorldMatrix().inverted().map(QPointF(windowPos));
-    imgPos = (getImageMatrix().inverted() * devicePixelRatioF()).map(imgPos);
+    const QPointF imgPos = transformVM()->mapToImagePixel(windowPos);
 
     QPoint p(qFloor(imgPos.x()), qFloor(imgPos.y()));
     QSize sz = imageVM()->image().size();

@@ -31,14 +31,9 @@ public:
 
     void setMinZoomLevelTo1();
 
-    [[nodiscard]] QTransform imgMatrix() const
+    [[nodiscard]] QTransform imageToWidgetTransform() const
     {
-        return mImgMatrix;
-    }
-
-    [[nodiscard]] QTransform worldMatrix() const
-    {
-        return mWorldMatrix;
+        return mImgMatrix * mWorldMatrix;
     }
 
     void syncTransform(const QPointF &pos, qreal zoomLevel, bool isRelativeTranslation);

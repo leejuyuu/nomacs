@@ -74,7 +74,7 @@ public:
 
     QTransform imageToWidgetTransform() const
     {
-        return mTransformVM->imgMatrix() * mTransformVM->worldMatrix();
+        return mTransformVM->imageToWidgetTransform();
     }
 
     // visible region of the image, unscaled

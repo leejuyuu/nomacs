@@ -36,8 +36,7 @@ protected:
 
 TEST_F(DkViewPortTransformViewModelTest, InitialState)
 {
-    EXPECT_TRUE(vm->worldMatrix().isIdentity());
-    EXPECT_TRUE(vm->imgMatrix().isIdentity());
+    EXPECT_TRUE(vm->imageToWidgetTransform().isIdentity());
     EXPECT_DOUBLE_EQ(vm->zoomLevel(), 1.0);
 }
 
@@ -45,7 +44,6 @@ struct SetImageSizeTestParam {
     QSizeF size;
     qreal expectedZoomLevel = 1;
     QRectF expectedImgViewRect;
-    QTransform expectedWorldMatrix;
     std::optional<DkSettings::keepZoom> keepZoom;
 };
 
@@ -123,7 +121,9 @@ TEST_P(SetImageSizeTest, SetImageSize)
     vm->setImgSize(params.size, params.keepZoom);
     EXPECT_DOUBLE_EQ(vm->zoomLevel(), params.expectedZoomLevel) << "unequal zoomLevel";
     EXPECT_TRUE(assertClose(vm->imgViewRect(), params.expectedImgViewRect)) << "unequal imgViewRect";
-    EXPECT_TRUE(assertClose(vm->worldMatrix(), params.expectedWorldMatrix)) << "unequal worldMatrix";
+
+    // We do not have pan or zoom yet.
+    EXPECT_TRUE(assertClose(vm->getImageViewRect(), params.expectedImgViewRect)) << "unequal getImageViewRect";
 }
 
 INSTANTIATE_TEST_SUITE_P(Initial,
@@ -133,63 +133,54 @@ INSTANTIATE_TEST_SUITE_P(Initial,
                                  QSizeF(400, 300),
                                  1,
                                  QRectF({400, 300}, QSizeF(400, 300)),
-                                 QTransform(),
                                  std::nullopt,
                              },
                              {
                                  QSizeF(1200, 900),
                                  1,
                                  QRectF({}, QSizeF(1200, 900)),
-                                 QTransform(),
                                  std::nullopt,
                              },
                              {
                                  QSizeF(1920, 1440),
                                  1200. / 1920.,
                                  QRectF({}, QSizeF(1200, 900)),
-                                 QTransform(),
                                  std::nullopt,
                              },
                              {
                                  QSizeF(400, 200),
                                  1,
                                  QRectF({400, 350}, QSizeF(400, 200)),
-                                 QTransform(),
                                  std::nullopt,
                              },
                              {
                                  QSizeF(1200, 800),
                                  1,
                                  QRectF({0, 50}, QSizeF(1200, 800)),
-                                 QTransform(),
                                  std::nullopt,
                              },
                              {
                                  QSizeF(1920, 900),
                                  1200. / 1920.,
                                  QRectF({0, 900 * (1 - 1200. / 1920.) / 2}, QSizeF(1200, 900 * 1200. / 1920.)),
-                                 QTransform(),
                                  std::nullopt,
                              },
                              {
                                  QSizeF(600, 800),
                                  1,
                                  QRectF({300, 50}, QSizeF(600, 800)),
-                                 QTransform(),
                                  std::nullopt,
                              },
                              {
                                  QSizeF(600, 1800),
                                  0.5,
                                  QRectF({450, 0}, QSizeF(300, 900)),
-                                 QTransform(),
                                  std::nullopt,
                              },
                              {
                                  QSizeF(2400, 2400),
                                  900. / 2400.,
                                  QRectF({150, 0}, QSizeF(900, 900)),
-                                 QTransform(),
                                  std::nullopt,
                              },
                              // Single pixel image
@@ -197,7 +188,6 @@ INSTANTIATE_TEST_SUITE_P(Initial,
                                  QSizeF(1, 1),
                                  1,
                                  QRectF({599.5, 449.5}, QSizeF(1, 1)),
-                                 QTransform(),
                                  std::nullopt,
                              },
                          }));
