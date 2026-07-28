@@ -114,14 +114,6 @@ DkViewPort::DkViewPort(DkThumbLoader *thumbLoader, QWidget *parent, bool resetWh
         setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     }
 
-    connect(transformVM(), &DkViewPortTransformViewModel::transformChanged, this, [this]() {
-        const auto vm = transformVM();
-        auto cw = mController->getCropWidget();
-        cw->setWorldTransform(vm->worldMatrix());
-        cw->setImageTransform(vm->imgMatrix());
-        cw->setImageRect(vm->imgViewRect());
-    });
-
     // nav buttons initialized after mController to place them above all other hud widgets
     QSize s(64, 64);
     QColor c(0, 0, 0);

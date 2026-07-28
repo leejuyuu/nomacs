@@ -63,6 +63,9 @@
 #include <QMessageBox>
 #include <QMouseEvent>
 #include <QObject>
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+#include <QOverload>
+#endif
 #include <QPainter>
 #include <QPainterPath>
 #include <QProgressDialog>
@@ -1450,10 +1453,13 @@ void DkTransformRect::enterEvent(DkEnterEvent *)
 }
 
 // DkEditableRectangle --------------------------------------------------------------------
-DkEditableRect::DkEditableRect(QWidget *parent, Qt::WindowFlags f)
+DkEditableRect::DkEditableRect(DkViewPortTransformViewModel *transformVM, QWidget *parent, Qt::WindowFlags f)
     : DkFadeWidget(parent, f)
+    , mTransformVM{transformVM}
     , mRect{QRectF()}
 {
+    Q_ASSERT(mTransformVM);
+
     mRotatingCursor = QCursor(DkImage::loadIcon(":/nomacs/img/rotating-cursor.svg").pixmap(24));
 
     setAttribute(Qt::WA_MouseTracking);
@@ -1470,6 +1476,8 @@ DkEditableRect::DkEditableRect(QWidget *parent, Qt::WindowFlags f)
         connect(mCtrlPoints[idx], &DkTransformRect::ctrlMovedSignal, this, &DkEditableRect::updateCorner);
         connect(mCtrlPoints[idx], &DkTransformRect::updateDiagonal, this, &DkEditableRect::updateDiagonal);
     }
+
+    connect(mTransformVM, &DkViewPortTransformViewModel::transformChanged, this, qOverload<>(&DkEditableRect::update));
 }
 
 void DkEditableRect::reset()
@@ -1479,23 +1487,15 @@ void DkEditableRect::reset()
 
 QPointF DkEditableRect::map(const QPointF &pos)
 {
-    QPointF posM = pos;
-    if (mWorldTform)
-        posM = mWorldTform->inverted().map(posM);
-    if (mImgTform)
-        posM = mImgTform->inverted().map(posM);
-
-    return posM;
+    return mTransformVM->imageToWidgetTransform().inverted().map(pos);
 }
 
 QPointF DkEditableRect::clipToImage(const QPointF &pos)
 {
-    if (!mImgRect)
+    const QRectF imgViewRect = mTransformVM->getImageViewRect();
+    if (imgViewRect.isEmpty()) {
         return QPointF(pos);
-
-    QRectF imgViewRect(*mImgRect);
-    if (mWorldTform)
-        imgViewRect = mWorldTform->mapRect(imgViewRect);
+    }
 
     auto x = (float)pos.x();
     auto y = (float)pos.y();
@@ -1516,12 +1516,10 @@ QPointF DkEditableRect::clipToImage(const QPointF &pos)
 
 QPointF DkEditableRect::clipToImageForce(const QPointF &pos)
 {
-    if (!mImgRect)
+    const QRectF imgViewRect = mTransformVM->getImageViewRect();
+    if (imgViewRect.isEmpty()) {
         return QPointF(pos);
-
-    QRectF imgViewRect(*mImgRect);
-    if (mWorldTform)
-        imgViewRect = mWorldTform->mapRect(imgViewRect);
+    }
 
     auto x = (float)pos.x();
     auto y = (float)pos.y();
@@ -1611,10 +1609,7 @@ void DkEditableRect::paintEvent(QPaintEvent *event)
         p = mTtform.map(p);
         p = mRtform.map(p);
         p = mTtform.inverted().map(p);
-        if (mImgTform)
-            p = mImgTform->map(p);
-        if (mWorldTform)
-            p = mWorldTform->map(p);
+        p = mTransformVM->imageToWidgetTransform().map(p);
         QPolygon pr = p.toPolygon(); // round coordinates
         path.addPolygon(pr);
     }
@@ -1777,7 +1772,7 @@ void DkEditableRect::mouseMoveEvent(QMouseEvent *event)
     if (mState == initializing && event->buttons() == Qt::LeftButton) {
         QPointF clipPos = clipToImageForce(QPointF(event->pos()));
 
-        if (!mImgRect || !mRect.isEmpty() || clipPos == QPointF(event->pos())) {
+        if (mTransformVM->imgRect().isEmpty() || !mRect.isEmpty() || clipPos == QPointF(event->pos())) {
             if (mRect.isEmpty()) {
                 for (int idx = 0; idx < mCtrlPoints.size(); idx++)
                     mCtrlPoints[idx]->show();
@@ -1981,8 +1976,10 @@ void DkEditableRect::setVisible(bool visible)
 }
 
 // DkEditableRect --------------------------------------------------------------------
-DkCropWidget::DkCropWidget(QWidget *parent /* = 0*/, Qt::WindowFlags f /* = 0*/)
-    : DkEditableRect(parent, f)
+DkCropWidget::DkCropWidget(DkViewPortTransformViewModel *transformVM,
+                           QWidget *parent /* = 0*/,
+                           Qt::WindowFlags f /* = 0*/)
+    : DkEditableRect(transformVM, parent, f)
 {
     cropToolbar = nullptr;
 }

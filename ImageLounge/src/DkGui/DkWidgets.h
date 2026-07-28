@@ -462,25 +462,12 @@ public:
         scaling
     };
 
-    explicit DkEditableRect(QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
+    explicit DkEditableRect(DkViewPortTransformViewModel *transformVM,
+                            QWidget *parent = nullptr,
+                            Qt::WindowFlags f = Qt::WindowFlags());
     ~DkEditableRect() override = default;
 
     void reset();
-
-    void setWorldTransform(const QTransform &worldTform)
-    {
-        mWorldTform = worldTform;
-    };
-
-    void setImageTransform(const QTransform &imgTform)
-    {
-        mImgTform = imgTform;
-    };
-
-    void setImageRect(const QRectF &imgRect)
-    {
-        mImgRect = imgRect;
-    };
 
     void setVisible(bool visible) override;
 
@@ -519,9 +506,8 @@ protected:
     void drawGuide(QPainter *painter, const QPolygonF &p, int paintMode);
     QPointF map(const QPointF &pos);
 
+    DkViewPortTransformViewModel *mTransformVM = nullptr;
     int mState = do_nothing;
-    std::optional<QTransform> mImgTform;
-    std::optional<QTransform> mWorldTform;
     QTransform mTtform;
     QTransform mRtform;
     QPointF mPosGrab;
@@ -534,7 +520,6 @@ protected:
     QBrush mBrush;
     QVector<DkTransformRect *> mCtrlPoints;
     QCursor mRotatingCursor;
-    std::optional<QRectF> mImgRect;
     bool mPanning = false;
     int mPaintMode = rule_of_thirds;
     bool mShowInfo = false;
@@ -545,7 +530,9 @@ class DkCropWidget : public DkEditableRect
     Q_OBJECT
 
 public:
-    explicit DkCropWidget(QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
+    explicit DkCropWidget(DkViewPortTransformViewModel *transformVM,
+                          QWidget *parent = nullptr,
+                          Qt::WindowFlags f = Qt::WindowFlags());
 
     DkCropToolBar *getToolbar() const;
 
