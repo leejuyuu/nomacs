@@ -56,7 +56,7 @@ DkControlWidget::DkControlWidget(DkThumbLoader *thumbLoader, DkViewPort *parent,
 
     // cropping
     // TODO: add lazy initialization here
-    mCropWidget = new DkCropWidget(QRectF(), this);
+    mCropWidget = new DkCropWidget(this);
 
     // thumbnails, metadata
     mFilePreview = new DkFilePreview(thumbLoader, this, flags);

@@ -1450,10 +1450,10 @@ void DkTransformRect::enterEvent(DkEnterEvent *)
 }
 
 // DkEditableRectangle --------------------------------------------------------------------
-DkEditableRect::DkEditableRect(const QRectF &rect, QWidget *parent, Qt::WindowFlags f)
+DkEditableRect::DkEditableRect(QWidget *parent, Qt::WindowFlags f)
     : DkFadeWidget(parent, f)
+    , mRect{QRectF()}
 {
-    mRect = rect;
     mRotatingCursor = QCursor(DkImage::loadIcon(":/nomacs/img/rotating-cursor.svg").pixmap(24));
 
     setAttribute(Qt::WA_MouseTracking);
@@ -1981,8 +1981,8 @@ void DkEditableRect::setVisible(bool visible)
 }
 
 // DkEditableRect --------------------------------------------------------------------
-DkCropWidget::DkCropWidget(QRectF rect /* = QRect */, QWidget *parent /* = 0*/, Qt::WindowFlags f /* = 0*/)
-    : DkEditableRect(rect, parent, f)
+DkCropWidget::DkCropWidget(QWidget *parent /* = 0*/, Qt::WindowFlags f /* = 0*/)
+    : DkEditableRect(parent, f)
 {
     cropToolbar = nullptr;
 }

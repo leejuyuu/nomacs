@@ -462,9 +462,7 @@ public:
         scaling
     };
 
-    explicit DkEditableRect(const QRectF &rect = QRect(),
-                            QWidget *parent = nullptr,
-                            Qt::WindowFlags f = Qt::WindowFlags());
+    explicit DkEditableRect(QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
     ~DkEditableRect() override = default;
 
     void reset();
@@ -547,7 +545,7 @@ class DkCropWidget : public DkEditableRect
     Q_OBJECT
 
 public:
-    explicit DkCropWidget(QRectF rect = QRect(), QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
+    explicit DkCropWidget(QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
 
     DkCropToolBar *getToolbar() const;
 
