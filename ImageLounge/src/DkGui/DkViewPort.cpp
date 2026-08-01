@@ -1690,7 +1690,7 @@ void DkViewPortFrameless::eraseBackground(QPainter &painter) const
     if (!imageVM()->isEmpty())
         return;
 
-    painter.setWorldTransform(getImageMatrix());
+    painter.setWorldTransform({});
     painter.setBrush(QColor(127, 144, 144, 200));
     painter.setPen(QColor(100, 100, 100, 255));
 
@@ -1758,7 +1758,7 @@ void DkViewPortFrameless::mousePressEvent(QMouseEvent *event)
 void DkViewPortFrameless::mouseReleaseEvent(QMouseEvent *event)
 {
     if (imageVM()->isEmpty()) {
-        QPointF pos = getImageMatrix().inverted().map(event->pos());
+        QPointF pos = event->pos();
 
         for (int idx = 0; idx < mStartActionsRects.size(); idx++) {
             if (mStartActionsRects[idx].contains(pos)) {
@@ -1778,7 +1778,7 @@ void DkViewPortFrameless::mouseReleaseEvent(QMouseEvent *event)
 void DkViewPortFrameless::mouseMoveEvent(QMouseEvent *event)
 {
     if (imageVM()->isEmpty()) {
-        const QPointF pos = getImageMatrix().inverted().map(event->pos());
+        const QPointF pos = event->pos();
 
         const auto it = std::find_if(mStartActionsRects.begin(), mStartActionsRects.end(), [pos](const QRectF &r) {
             return r.contains(pos);
