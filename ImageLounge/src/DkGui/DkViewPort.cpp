@@ -62,6 +62,7 @@
 #include <QVBoxLayout>
 #include <QtConcurrentRun>
 #include <QtGlobal>
+#include <algorithm>
 #include <climits>
 #include <cmath>
 #include <memory>
@@ -1777,19 +1778,16 @@ void DkViewPortFrameless::mouseReleaseEvent(QMouseEvent *event)
 void DkViewPortFrameless::mouseMoveEvent(QMouseEvent *event)
 {
     if (imageVM()->isEmpty()) {
-        QPointF pos = getImageMatrix().inverted().map(event->pos());
+        const QPointF pos = getImageMatrix().inverted().map(event->pos());
 
-        int idx;
-        for (idx = 0; idx < mStartActionsRects.size(); idx++) {
-            if (mStartActionsRects[idx].contains(pos)) {
-                setCursor(Qt::PointingHandCursor);
-                break;
-            }
+        const auto it = std::find_if(mStartActionsRects.begin(), mStartActionsRects.end(), [pos](const QRectF &r) {
+            return r.contains(pos);
+        });
+        if (it != mStartActionsRects.end()) {
+            setCursor(Qt::PointingHandCursor);
+        } else {
+            unsetCursor();
         }
-
-        //// TODO: change if closed hand cursor is present...
-        // if (idx == startActionsRects.size())
-        //	setCursor(Qt::OpenHandCursor);
     }
 
     if (DkStatusBarManager::instance().statusbar()->isVisible())
