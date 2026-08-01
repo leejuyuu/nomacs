@@ -180,7 +180,9 @@ bool DkViewPortTransformViewModel::imageInside() const
 
 QPointF DkViewPortTransformViewModel::mapToImagePixel(const QPointF &p) const
 {
-    return (mWorldMatrix.inverted() * mImgMatrix.inverted() * mDevicePixelRatio).map(p);
+    return (mWorldMatrix.inverted() * mImgMatrix.inverted()
+            * QTransform::fromScale(mDevicePixelRatio, mDevicePixelRatio))
+        .map(p);
 }
 
 DkViewPortTransformViewModel::ZoomPos DkViewPortTransformViewModel::calcZoomCenter(const std::optional<QPointF> &center,
