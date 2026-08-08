@@ -1772,7 +1772,7 @@ void DkEditableRect::mouseMoveEvent(QMouseEvent *event)
     if (mState == initializing && event->buttons() == Qt::LeftButton) {
         QPointF clipPos = clipToImageForce(QPointF(event->pos()));
 
-        if (mTransformVM->imgRect().isEmpty() || !mRect.isEmpty() || clipPos == QPointF(event->pos())) {
+        if (mTransformVM->hasImage() || !mRect.isEmpty() || clipPos == QPointF(event->pos())) {
             if (mRect.isEmpty()) {
                 for (int idx = 0; idx < mCtrlPoints.size(); idx++)
                     mCtrlPoints[idx]->show();

@@ -77,7 +77,7 @@ void DkViewPortTransformViewModel::translateViewInWidgetCoords(qreal x, qreal y)
 void DkViewPortTransformViewModel::setWidgetSize(const QSize &size)
 {
     mViewportRect = QRect({}, size);
-    if (mImgRect.isNull()) {
+    if (!hasImage()) {
         return;
     }
     updateImageMatrix();
@@ -208,7 +208,7 @@ DkViewPortTransformViewModel::ZoomPos DkViewPortTransformViewModel::calcZoomCent
 void DkViewPortTransformViewModel::updateImageMatrix(std::optional<DkSettings::keepZoom> keepZoom,
                                                      const QSizeF &oldSize)
 {
-    if (mImageSize.isEmpty()) {
+    if (!hasImage()) {
         // Initial state has no image.
         mImgRect = {};
         return;
@@ -460,7 +460,7 @@ void DkViewPortTransformViewModel::zoomOut()
 
 void DkViewPortTransformViewModel::syncTransform(const QPointF &pos, qreal zoomLevel, bool isRelativeTranslation)
 {
-    if (mImgRect.size().isEmpty()) {
+    if (!hasImage()) {
         return;
     }
 
@@ -484,7 +484,7 @@ void DkViewPortTransformViewModel::syncTransform(const QPointF &pos, qreal zoomL
 
 std::optional<QPointF> DkViewPortTransformViewModel::relativeViewportCenter() const
 {
-    if (mImgRect.size().isEmpty()) {
+    if (!hasImage()) {
         return std::nullopt;
     }
 

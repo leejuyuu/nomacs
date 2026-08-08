@@ -45,6 +45,11 @@ public:
         return mImgRect;
     }
 
+    [[nodiscard]] bool hasImage() const
+    {
+        return !mImageSize.isEmpty();
+    }
+
     [[nodiscard]] QRectF imgViewRect() const
     {
         return mImgViewRect;
